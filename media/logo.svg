@@ -16,7 +16,10 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="logo.svg">
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="/home/facundo/devel/reps/recordium/media/logo.png"
+   inkscape:export-xdpi="24.379999"
+   inkscape:export-ydpi="24.379999">
   <defs
      id="defs4">
     <filter
@@ -108,13 +111,13 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.26246406"
-     inkscape:cx="1553.0421"
+     inkscape:cx="621.48599"
      inkscape:cy="832.98421"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1887"
-     inkscape:window-height="1026"
+     inkscape:window-width="1333"
+     inkscape:window-height="714"
      inkscape:window-x="33"
      inkscape:window-y="24"
      inkscape:window-maximized="1" />
@@ -126,7 +129,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>

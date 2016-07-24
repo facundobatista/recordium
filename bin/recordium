@@ -16,17 +16,36 @@
 #
 # For further info, check  https://github.com/facundobatista/recordium
 
-"""Script to run the 'fades' utility."""
+"""Script to run the 'recordium' utility."""
 
+import logging
 import os
 import sys
 
-# small hack to allow recordium to be run directly from the project, using code 
+# small hack to allow recordium to be run directly from the project, using code
 # from project itself, not anything already installed in the system
 parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 if os.path.basename(parent_dir) == 'recordium':
     # inside the project!!
     sys.path.insert(0, parent_dir)
 
-from recordium import main
-main.go()
+from recordium import main, logger
+
+# set up logging
+verbose = len(sys.argv) > 1 and sys.argv[1] in ('-v', '--verbose')
+logger.set_up(verbose)
+log = logging.getLogger('encuentro.init')
+
+# first of all, show the versions
+print("Running Python {} on {!r}".format(sys.version_info, sys.platform))
+log.info("Running Python %s on %r", sys.version_info, sys.platform)
+version_file = 'version.txt'
+if os.path.exists(version_file):
+    version = open(version_file).read().strip()
+    print("Recordium: v.", version)
+else:
+    version = None
+    print("Recordium: no revno info")
+log.info("Recordium version: %r", version)
+
+main.go(version)
