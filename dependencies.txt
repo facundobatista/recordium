@@ -1,0 +1,2 @@
+fades
+python3-pyqt5
