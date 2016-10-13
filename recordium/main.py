@@ -14,7 +14,6 @@
 #
 # For further info, check  https://github.com/facundobatista/recordium
 
-import os
 import logging
 import sys
 
@@ -23,10 +22,6 @@ from PyQt5 import QtWidgets, QtGui
 from recordium import network, storage
 
 logger = logging.getLogger(__name__)
-
-with open(os.path.join(os.path.expanduser("~"), ".recordium.token"), "rt", encoding="ascii") as fh:
-    # FIXME: read this better from a config or something
-    TOKEN = fh.read().strip()
 
 
 # FIXME: implement a window listing all messages
@@ -93,5 +88,8 @@ class RecordiumApp(QtWidgets.QApplication):
 
 
 def go(version):
+    print("========0go 0")
     app = RecordiumApp()
+    print("========0go 1")
     sys.exit(app.exec_())
+    print("========0go 2")
