@@ -25,23 +25,47 @@ logger = logging.getLogger(__name__)
 
 
 # FIXME: implement a window listing all messages
-#  - get the messages from self.app.storage
 #  - provide a checkbox "Include reviewed messages"
 #  - build the window with app.get_elements(including_viewed=?) <-- depends of the checkbox
 #  - the state of the checkbox should go to the config
 #  - we should have a button on each row, a checkbox, or something, to mark them as reviewed
 #  - only when windows is closed those marked/unmarked are updated in the storage
 
+ABOUT_TEXT = """
+<center>
+Send messages via Telegram that will be notified later in your desktop.<br/>
+<br/>
+Version {version}<br/>
+<br/>
+<small>Copyright 2016 Facundo Batista</small><br/>
+<br/>
+<a href="https://github.com/facundobatista/recordium">The project</a>
+</center>
+"""
+
+N_MESSAGES_TEXT = "{quantity} new messages"
+
+
+def debug_trace():
+    '''Set a tracepoint in the Python debugger that works with Qt'''
+    from PyQt5.QtCore import pyqtRemoveInputHook
+
+    from pdb import set_trace
+    pyqtRemoveInputHook()
+    set_trace()
+
 
 class SysTray:
-    def __init__(self, app):
+    def __init__(self, app, version):
         self.app = app
+        self.version = version
         icon = QtGui.QIcon("media/icon-192.png")
 
         self.sti = sti = QtWidgets.QSystemTrayIcon(icon)
         self.menu = menu = QtWidgets.QMenu()
-        action = menu.addAction("N messages")
-        action.triggered.connect(self._show_messages)
+        # FIXME: always start with 0? NO!!
+        self._messages_action = menu.addAction(N_MESSAGES_TEXT.format(quantity=0))
+        self._messages_action.triggered.connect(self._show_messages)
         menu.addSeparator()
         action = menu.addAction("Configure")
         action.triggered.connect(self._configure)
@@ -60,8 +84,11 @@ class SysTray:
         # - the polling time (default 30s)
 
     def _about(self, _):
-        print("========= about")
-        # FIXME: show a very similar about than Encuentro
+        """Show the About dialog."""
+        version = self.version if self.version else "(?)"
+        title = "Recordium v" + version
+        text = ABOUT_TEXT.format(version=version)
+        QtWidgets.QMessageBox.about(None, title, text)
 
     def _show_messages(self, _):
         print("========= messa")
@@ -70,26 +97,24 @@ class SysTray:
     def set_message_number(self, quantity):
         print("======== set message quantity!", quantity)
         # FIXME: change the icon color
-        # FIXME: change the menu entry to shown proper N messages
+        self._messages_action.setText(N_MESSAGES_TEXT.format(quantity=quantity))
 
 
 class RecordiumApp(QtWidgets.QApplication):
-    def __init__(self):
+    def __init__(self, version):
         super().__init__(sys.argv)
-        network.get_messages(self.new_messages)
-        self.systray = SysTray(self)
+        self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
         self.storage = storage.Storage()
+        self.systray = SysTray(self, version)
+
+        network.get_messages(self.new_messages, self.storage.get_last_element_id)
 
     def new_messages(self, messages):
         """Called FROM A THREAD when new messages are available."""
-        print("=========== got new messages!!!", messages)
         self.storage.add_elements(messages)
         self.systray.set_message_number(len(self.storage.get_elements()))
 
 
 def go(version):
-    print("========0go 0")
-    app = RecordiumApp()
-    print("========0go 1")
+    app = RecordiumApp(version)
     sys.exit(app.exec_())
-    print("========0go 2")

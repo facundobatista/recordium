@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 FILEPATH = os.path.join(BaseDirectory.xdg_data_home, 'recordium.pkl')
 
+ELEMENTS = 'elements'
+
 
 class Storage:
     """Store the messages."""
@@ -36,26 +38,43 @@ class Storage:
                 self.data = pickle.load(fh)
             logger.debug("Loaded %d items", len(self.data))
         else:
-            self.data = []
+            self.data = {
+                ELEMENTS: {},
+            }
             logger.debug("File not found, starting empty")
 
     # FIXME: provide a method to remove messages older than N days
 
-    def get_elements(self, including_viewed=False):
-        pass
-        # FIXME return all the elements, filtering by 'viewed'
+    def get_last_element_id(self):
+        """Return the last stored element, None if nothing stored."""
+        if not self.data[ELEMENTS]:
+            return
+        return max(self.data[ELEMENTS])
 
-    def set_viewed(self, element_id, viewed):
-        pass
-        # FIXME set viewed or not for the indicated element
+    def get_elements(self, including_viewed=False):
+        """Return the elements, filtering by viewed."""
+        elements = []
+        for _, element in sorted(self.data[ELEMENTS].items()):
+            if element.viewed and not including_viewed:
+                continue
+            elements.append(element)
+        return elements
+
+    def set_element(self, element):
+        """Add the new element (or replace current one) to the storage."""
+        logger.debug("Setting element: %s", element)
+        self.data[ELEMENTS][element.message_id] = element
+        self._save()
 
     def add_elements(self, elements):
-        pass
-        # FIXME add a bunch of elements to the storage
+        """Add the new elements (or replace them) to the storage."""
+        logger.debug("Adding elements: %s", elements)
+        self.data[ELEMENTS].update({elem.message_id: elem for elem in elements})
+        self._save()
 
     def _save(self):
         """Save the data to disk."""
         # we don't want to pickle this class, but the dict itself
-        logger.debug("Saving %d items", len(self.data))
+        logger.debug("Saving in %s", FILEPATH)
         with SafeSaver(FILEPATH) as fh:
             pickle.dump(self.data, fh)

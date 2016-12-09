@@ -18,6 +18,9 @@ import json
 import logging
 import os
 
+from datetime import datetime
+from urllib import parse
+
 import defer
 
 from PyQt5 import QtCore, QtNetwork
@@ -25,6 +28,35 @@ from PyQt5 import QtCore, QtNetwork
 logger = logging.getLogger(__name__)
 
 API_BASE = "https://api.telegram.org/bot{token}/{method}"
+
+
+class NotificationItem:
+    """The item shown in the notification."""
+
+    def __init__(self, text, sent_at, message_id):
+        self.text = text
+        self.sent_at = sent_at
+        self.message_id = message_id
+        self.viewed = False
+
+    @classmethod
+    def from_update(cls, update):
+        """Create from a telegram message."""
+        update_id = int(update['update_id'])
+        print("========= from up", update)
+        try:
+            msg = update['message']
+        except KeyError:
+            logger.warning("Unknown update type: %r", update)
+            return
+
+        text = msg['text']
+        sent_at = datetime.fromtimestamp(msg['date'])
+        return cls(text=text, sent_at=sent_at, message_id=update_id)
+
+
+class NetworkError(Exception):
+    """Problems in the network."""
 
 
 class _Downloader(object):
@@ -43,7 +75,10 @@ class _Downloader(object):
 
     def error(self, error_code):
         """Request finished (*maybe*) on error."""
-        logger.debug("Network error: %s", error_code)
+        error_message = "Downloader error {}: {}".format(error_code, self.req.errorString())
+        logger.warning(error_message)
+        if not self.deferred.called:
+            self.deferred.errback(NetworkError(error_message))
 
     def end(self):
         """Send data through the deferred, if wasn't fired before."""
@@ -57,24 +92,44 @@ with open(os.path.join(os.path.expanduser("~"), ".recordium.token"), "rt", encod
     TOKEN = fh.read().strip()
 
 
-def get_messages(callback):
-    url = API_BASE.format(token=TOKEN, method="getUpdates")  # FIXME: get token from config
+def build_api_url(method, **kwargs):
+    """Build the proper url to hit the API."""
+    url = API_BASE.format(token=TOKEN, method=method)  # FIXME: get token from config
+    if kwargs:
+        url += '?' + parse.urlencode(kwargs)
+    return url
+
+
+def get_messages(new_items_callback, last_id_callback):
+    """Get messages."""
 
     def _process(encoded_data):
+        """Process received info."""
         data = json.loads(encoded_data.decode('utf8'))
-        print("========= FRUTA", data)
-        if data.get('ok') is None:
+        if data.get('ok'):
+            items = []
+            for item in data['result']:
+                logger.debug("Processing result: %s", item)
+                ni = NotificationItem.from_update(item)
+                if ni is not None:
+                    items.append(ni)
+            if items:
+                new_items_callback(items)
+        else:
             logger.warning("Telegram result is not ok: %s", data)
-            return
-        for item in data:
-            print("==== item", item)
-        # [{"update_id":693209741,\n"message":{"message_id":5,"from":{"id":425513,"first_name":"Facundo","last_name":"Batista","username":"facundobatista"},"chat":{"id":425513,"first_name":"Facundo","last_name":"Batista","username":"facundobatista","type":"private"},"date":1475257028,"text":"asd"}}]}'
 
     def _get():
-        print("=========== _get")
+        """Get the info from Telegram."""
+        last_id = last_id_callback()
+        kwargs = {}
+        if last_id is not None:
+            kwargs['offset'] = last_id + 1
+        url = build_api_url('getUpdates', **kwargs)
+        logger.debug("Getting updates: %s", kwargs)
+
         downloader = _Downloader(url)
         downloader.deferred.add_callback(_process)
-        print("=========== def", downloader.deferred)
-        QtCore.QTimer.singleShot(1000, _get)  # FIXME: get polling time from config!
+        downloader.deferred.add_callbacks(
+            lambda _: QtCore.QTimer.singleShot(1000, _get))  # FIXME: get polling time from config!
 
     QtCore.QTimer.singleShot(0, _get)
