@@ -37,13 +37,11 @@ class NotificationItem:
         self.text = text
         self.sent_at = sent_at
         self.message_id = message_id
-        self.viewed = False
 
     @classmethod
     def from_update(cls, update):
         """Create from a telegram message."""
         update_id = int(update['update_id'])
-        print("========= from up", update)
         try:
             msg = update['message']
         except KeyError:
@@ -53,6 +51,9 @@ class NotificationItem:
         text = msg['text']
         sent_at = datetime.fromtimestamp(msg['date'])
         return cls(text=text, sent_at=sent_at, message_id=update_id)
+
+    def __str__(self):
+        return "<Message [{}] {} {!r}>".format(self.message_id, self.sent_at, self. text)
 
 
 class NetworkError(Exception):

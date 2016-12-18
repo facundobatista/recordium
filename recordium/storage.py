@@ -43,8 +43,6 @@ class Storage:
             }
             logger.debug("File not found, starting empty")
 
-    # FIXME: provide a method to remove messages older than N days
-
     def get_last_element_id(self):
         """Return the last stored element, None if nothing stored."""
         if not self.data[ELEMENTS]:
@@ -60,10 +58,11 @@ class Storage:
             elements.append(element)
         return elements
 
-    def set_element(self, element):
-        """Add the new element (or replace current one) to the storage."""
-        logger.debug("Setting element: %s", element)
-        self.data[ELEMENTS][element.message_id] = element
+    def delete_elements(self, elements):
+        """Remove elements from the storage."""
+        logger.debug("Deleting elements: %s", elements)
+        for element in elements:
+            del self.data[ELEMENTS][element.message_id]
         self._save()
 
     def add_elements(self, elements):
