@@ -49,13 +49,9 @@ class Storage:
             return
         return max(self.data[ELEMENTS])
 
-    def get_elements(self, including_viewed=False):
-        """Return the elements, filtering by viewed."""
-        elements = []
-        for _, element in sorted(self.data[ELEMENTS].items()):
-            if element.viewed and not including_viewed:
-                continue
-            elements.append(element)
+    def get_elements(self):
+        """Return the elements."""
+        elements = [element for _, element in sorted(self.data[ELEMENTS].items())]
         return elements
 
     def delete_elements(self, elements):

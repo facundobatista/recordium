@@ -17,6 +17,8 @@
 import logging
 import sys
 
+from functools import lru_cache
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 from recordium import network, storage
@@ -24,8 +26,7 @@ from recordium import network, storage
 logger = logging.getLogger(__name__)
 
 
-# FIXME (bug): support receiving audios
-
+# the text to show in the About window
 ABOUT_TEXT = """
 <center>
 Send messages via Telegram that will be notified later in your desktop.<br/>
@@ -38,7 +39,12 @@ Version {version}<br/>
 </center>
 """
 
+# the text to build the systray menu
 N_MESSAGES_TEXT = "{quantity} new messages"
+
+# icons to show if there are messages or not
+ICONPATH_NO_MESSAGE = 'media/icon-192.png'
+ICONPATH_HAVE_MESSAGES = 'media/icon-active-192.png'
 
 
 def debug_trace():
@@ -52,9 +58,6 @@ def debug_trace():
 
 class MessagesWidget(QtWidgets.QTableWidget):
     """The list of messages."""
-
-    # FIXME: on windows closing, get the messages marked as done and call storage.delete_item
-    # on them
 
     # keep this one as an attribute as it's used in several parts
     check_col = 2
@@ -80,9 +83,6 @@ class MessagesWidget(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(("When", "Text", "Done"))
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-
-        # FIXME (bug): calculate height and width, and set window size to that with some limit (so
-        # window doesn't get too big); if size trimmed, scrollbars should appear automatically)
 
         self.itemClicked.connect(self.item_clicked)
         self.show()
@@ -112,13 +112,15 @@ class SysTray:
     def __init__(self, app, version):
         self.app = app
         self.version = version
-        icon = QtGui.QIcon("media/icon-192.png")
 
-        self.sti = sti = QtWidgets.QSystemTrayIcon(icon)
+        # build the icon and message line, which will be properly set below when calling the
+        # set_message_number() method
+        self.sti = sti = QtWidgets.QSystemTrayIcon()
         self.menu = menu = QtWidgets.QMenu()
         self._messages_action = menu.addAction('')
         self.set_message_number()
         self._messages_action.triggered.connect(self._show_messages)
+
         menu.addSeparator()
         action = menu.addAction("Configure")
         action.triggered.connect(self._configure)
@@ -148,11 +150,17 @@ class SysTray:
         # store it in the instance otherwise it's destroyed
         self._temp_mw = MessagesWidget(self.app.storage, self)
 
+    @lru_cache(None)
+    def _get_icon(self, have_messages):
+        """Return and cache an icon."""
+        path = ICONPATH_HAVE_MESSAGES if have_messages else ICONPATH_NO_MESSAGE
+        return QtGui.QIcon(path)
+
     def set_message_number(self):
         """Set the message number in the systray icon."""
-        # FIXME: change the icon color
         quantity = len(self.app.storage.get_elements())
         self._messages_action.setText(N_MESSAGES_TEXT.format(quantity=quantity))
+        self.sti.setIcon(self._get_icon(bool(quantity)))
 
 
 class RecordiumApp(QtWidgets.QApplication):
@@ -168,6 +176,8 @@ class RecordiumApp(QtWidgets.QApplication):
         """Called FROM A THREAD when new messages are available."""
         self.storage.add_elements(messages)
         self.systray.set_message_number()
+
+# FIXME: write a README!!
 
 
 def go(version):
