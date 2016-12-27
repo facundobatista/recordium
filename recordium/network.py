@@ -16,7 +16,6 @@
 
 import json
 import logging
-import os
 
 from datetime import datetime
 from urllib import parse
@@ -24,6 +23,8 @@ from urllib import parse
 import defer
 
 from PyQt5 import QtCore, QtNetwork
+
+from recordium.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -88,14 +89,10 @@ class _Downloader(object):
             self.deferred.callback(data)
 
 
-with open(os.path.join(os.path.expanduser("~"), ".recordium.token"), "rt", encoding="ascii") as fh:
-    # FIXME: read this better from a config or something
-    TOKEN = fh.read().strip()
-
-
 def build_api_url(method, **kwargs):
     """Build the proper url to hit the API."""
-    url = API_BASE.format(token=TOKEN, method=method)  # FIXME: get token from config
+    token = config.get(config.BOT_AUTH_TOKEN)
+    url = API_BASE.format(token=token, method=method)
     if kwargs:
         url += '?' + parse.urlencode(kwargs)
     return url
@@ -106,10 +103,13 @@ def get_messages(new_items_callback, last_id_callback):
 
     def _process(encoded_data):
         """Process received info."""
+        logger.debug("Process encoded data len=%d", len(encoded_data))
         data = json.loads(encoded_data.decode('utf8'))
         if data.get('ok'):
+            results = data['result']
+            logger.debug("Telegram results ok! len=%d", len(results))
             items = []
-            for item in data['result']:
+            for item in results:
                 logger.debug("Processing result: %s", item)
                 ni = NotificationItem.from_update(item)
                 if ni is not None:
@@ -126,11 +126,15 @@ def get_messages(new_items_callback, last_id_callback):
         if last_id is not None:
             kwargs['offset'] = last_id + 1
         url = build_api_url('getUpdates', **kwargs)
-        logger.debug("Getting updates: %s", kwargs)
+        logger.debug("Getting updates, kwargs=%s", kwargs)
+
+        def _re_get(result):
+            polling_time = 1000 * config.get(config.POLLING_TIME)
+            logger.debug("Re get, result=%s polling_time=%d", result, polling_time)
+            QtCore.QTimer.singleShot(polling_time, _get)
 
         downloader = _Downloader(url)
         downloader.deferred.add_callback(_process)
-        downloader.deferred.add_callbacks(
-            lambda _: QtCore.QTimer.singleShot(1000, _get))  # FIXME: get polling time from config!
+        downloader.deferred.add_callbacks(_re_get, _re_get)
 
     QtCore.QTimer.singleShot(0, _get)

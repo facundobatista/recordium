@@ -22,6 +22,7 @@ from functools import lru_cache
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 from recordium import network, storage
+from recordium.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,37 @@ def debug_trace():
     from pdb import set_trace
     pyqtRemoveInputHook()
     set_trace()
+
+
+class ConfigWidget(QtWidgets.QWidget):
+    """The config window."""
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Configuration")
+
+        grid = QtWidgets.QGridLayout()
+        grid.addWidget(QtWidgets.QLabel("Telegram bot auth token:"), 0, 0)
+        prev = config.get(config.BOT_AUTH_TOKEN)
+        self.entry_auth_token = QtWidgets.QLineEdit(prev)
+        grid.addWidget(self.entry_auth_token, 0, 1)
+
+        grid.addWidget(QtWidgets.QLabel("Polling time (in seconds, min=1)"), 1, 0)
+        prev = config.get(config.POLLING_TIME)
+        self.entry_polling_time = QtWidgets.QSpinBox()
+        self.entry_polling_time.setValue(prev)
+        self.entry_polling_time.setMinimum(1)
+        grid.addWidget(self.entry_polling_time, 1, 1)
+
+        self.setLayout(grid)
+        self.show()
+
+    def closeEvent(self, event):
+        """Intercept closing and save config."""
+        config.set(config.BOT_AUTH_TOKEN, self.entry_auth_token.text())
+        config.set(config.POLLING_TIME, self.entry_polling_time.value())
+        config.save()
+        super().closeEvent(event)
 
 
 class MessagesWidget(QtWidgets.QTableWidget):
@@ -105,7 +137,13 @@ class MessagesWidget(QtWidgets.QTableWidget):
             # not a checkbox
             return
 
-        # FIXME: disable (put to grey) or enable the row, according to checkbox
+        should_strikeout = widget.checkState() == QtCore.Qt.Checked
+        row = widget.row()
+        for column in range(2):
+            item = self.item(row, column)
+            font = item.font()
+            font.setStrikeOut(should_strikeout)
+            item.setFont(font)
 
 
 class SysTray:
@@ -133,10 +171,8 @@ class SysTray:
         sti.show()
 
     def _configure(self, _):
-        print("========= config")
-        # FIXME: have a configuration settings, with:
-        # - the token (default empty)
-        # - the polling time (default 30s)
+        """Show the configuration dialog."""
+        self._temp_cw = ConfigWidget()
 
     def _about(self, _):
         """Show the About dialog."""
@@ -170,14 +206,12 @@ class RecordiumApp(QtWidgets.QApplication):
         self.storage = storage.Storage()
         self.systray = SysTray(self, version)
 
-        network.get_messages(self.new_messages, self.storage.get_last_element_id)
+        network.get_messages(self._new_messages, self.storage.get_last_element_id)
 
-    def new_messages(self, messages):
-        """Called FROM A THREAD when new messages are available."""
+    def _new_messages(self, messages):
+        """Called when new messages are available."""
         self.storage.add_elements(messages)
         self.systray.set_message_number()
-
-# FIXME: write a README!!
 
 
 def go(version):

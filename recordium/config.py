@@ -27,29 +27,45 @@ logger = logging.getLogger(__name__)
 FILEPATH = os.path.join(BaseDirectory.xdg_config_home, 'recordium.cfg')
 
 
-class _Config(dict):
+def _options_setter(cls):
+    """Set the options as an attribute."""
+    for name in cls._config_options:
+        setattr(cls, name, name)
+    return cls
+
+
+@_options_setter
+class _Config(object):
     """The configuration."""
 
-    def __init__(self):
-        super().__init__()
+    # config options, with their default
+    _config_options = {
+        'BOT_AUTH_TOKEN': '',
+        'POLLING_TIME': 30,
+    }
 
+    def __init__(self):
         if not os.path.exists(FILEPATH):
             # default to an empty dict
             logger.debug("File not found, starting empty")
+            self.data = {}
             return
 
         with open(FILEPATH, 'rb') as fh:
-            saved_dict = pickle.load(fh)
-        self.update(saved_dict)
-        logger.debug("Loaded: %s", self)
+            self.data = pickle.load(fh)
+        logger.debug("Loaded: %s", self.data)
+
+    def get(self, key):
+        return self.data.get(key, self._config_options[key])
+
+    def set(self, key, value):
+        self.data[key] = value
 
     def save(self):
         """Save the config to disk."""
-        # we don't want to pickle this class, but the dict itself
-        raw_dict = self.copy()
-        logger.debug("Saving: %s", self)
+        logger.debug("Saving: %s", self.data)
         with SafeSaver(FILEPATH) as fh:
-            pickle.dump(raw_dict, fh)
+            pickle.dump(self.data, fh)
 
 
 config = _Config()
