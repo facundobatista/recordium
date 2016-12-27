@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 FILEPATH = os.path.join(BaseDirectory.xdg_data_home, 'recordium.pkl')
 
 ELEMENTS = 'elements'
+LAST_ELEMENT_ID = 'last_elements_id'
 
 
 class Storage:
@@ -34,20 +35,19 @@ class Storage:
 
     def __init__(self):
         if os.path.exists(FILEPATH):
+            logger.debug("Loading from %r", FILEPATH)
             with open(FILEPATH, 'rb') as fh:
                 self.data = pickle.load(fh)
-            logger.debug("Loaded %d items", len(self.data))
         else:
             self.data = {
                 ELEMENTS: {},
+                LAST_ELEMENT_ID: None,
             }
             logger.debug("File not found, starting empty")
 
     def get_last_element_id(self):
         """Return the last stored element, None if nothing stored."""
-        if not self.data[ELEMENTS]:
-            return
-        return max(self.data[ELEMENTS])
+        return self.data[LAST_ELEMENT_ID]
 
     def get_elements(self):
         """Return the elements."""
@@ -64,12 +64,14 @@ class Storage:
     def add_elements(self, elements):
         """Add the new elements (or replace them) to the storage."""
         logger.debug("Adding elements: %s", elements)
-        self.data[ELEMENTS].update({elem.message_id: elem for elem in elements})
+        new_elements_dict = {elem.message_id: elem for elem in elements}
+        self.data[ELEMENTS].update(new_elements_dict)
+        self.data[LAST_ELEMENT_ID] = max(new_elements_dict)
         self._save()
 
     def _save(self):
         """Save the data to disk."""
         # we don't want to pickle this class, but the dict itself
-        logger.debug("Saving in %s", FILEPATH)
+        logger.debug("Saving in %r", FILEPATH)
         with SafeSaver(FILEPATH) as fh:
             pickle.dump(self.data, fh)
