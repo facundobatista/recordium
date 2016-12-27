@@ -205,8 +205,9 @@ class RecordiumApp(QtWidgets.QApplication):
         self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
         self.storage = storage.Storage()
         self.systray = SysTray(self, version)
-
-        network.get_messages(self._new_messages, self.storage.get_last_element_id)
+        self.messages_getter = network.MessagesGetter(
+            self._new_messages, self.storage.get_last_element_id)
+        self.messages_getter.go()
 
     def _new_messages(self, messages):
         """Called when new messages are available."""

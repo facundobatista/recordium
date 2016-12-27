@@ -98,10 +98,14 @@ def build_api_url(method, **kwargs):
     return url
 
 
-def get_messages(new_items_callback, last_id_callback):
+class MessagesGetter:
     """Get messages."""
 
-    def _process(encoded_data):
+    def __init__(self, new_items_callback, last_id_callback):
+        self.new_items_callback = new_items_callback
+        self.last_id_callback = last_id_callback
+
+    def _process(self, encoded_data):
         """Process received info."""
         logger.debug("Process encoded data len=%d", len(encoded_data))
         data = json.loads(encoded_data.decode('utf8'))
@@ -115,13 +119,13 @@ def get_messages(new_items_callback, last_id_callback):
                 if ni is not None:
                     items.append(ni)
             if items:
-                new_items_callback(items)
+                self.new_items_callback(items)
         else:
             logger.warning("Telegram result is not ok: %s", data)
 
-    def _get():
+    def go(self):
         """Get the info from Telegram."""
-        last_id = last_id_callback()
+        last_id = self.last_id_callback()
         kwargs = {}
         if last_id is not None:
             kwargs['offset'] = last_id + 1
@@ -131,10 +135,8 @@ def get_messages(new_items_callback, last_id_callback):
         def _re_get(result):
             polling_time = 1000 * config.get(config.POLLING_TIME)
             logger.debug("Re get, result=%s polling_time=%d", result, polling_time)
-            QtCore.QTimer.singleShot(polling_time, _get)
+            QtCore.QTimer.singleShot(polling_time, self.go)
 
-        downloader = _Downloader(url)
-        downloader.deferred.add_callback(_process)
-        downloader.deferred.add_callbacks(_re_get, _re_get)
-
-    QtCore.QTimer.singleShot(0, _get)
+        self._downloader = _Downloader(url)
+        self._downloader.deferred.add_callback(self._process)
+        self._downloader.deferred.add_callbacks(_re_get, _re_get)
