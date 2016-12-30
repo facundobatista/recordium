@@ -22,7 +22,7 @@ Step by step instructions
 - Set up Recordium (provisional instructions, in the future this should be
   packaged)::
 
-    git clone git@github.com:facundobatista/recordium.git
+    git clone https://github.com/facundobatista/recordium.git
     cd recordium
     bin/recordium
 
