@@ -24,7 +24,17 @@ Step by step instructions
 
     git clone https://github.com/facundobatista/recordium.git
     cd recordium
-    bin/recordium
+
+  If you have Ubuntu or Debian, just install the dependencies and run the
+  project doing::
+
+    cat dependencies.txt | sudo xargs apt-get install -y
+    ./run
+
+  Otherwise, you will find in ``dependencies.txt`` what is needed at system
+  level (and if you're not using ``fades`` and dealing with your virtualenv
+  manually, check also ``requirements.txt``).
+
 
 - Create a telegram bot
 
