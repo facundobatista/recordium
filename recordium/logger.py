@@ -37,12 +37,8 @@ class CustomRotatingFH(RotatingFileHandler):
 def exception_handler(exc_type, exc_value, tb):
     """Handle an unhandled exception."""
     exception = traceback.format_exception(exc_type, exc_value, tb)
-    msg = "".join(exception)
-    print(msg, file=sys.stderr)
-
-    # log
     logger = logging.getLogger('recordium')
-    logger.error("Unhandled exception!\n%s", msg)
+    logger.error("Unhandled exception!\n%s", "".join(exception))
 
 
 def set_up(verbose):
@@ -54,16 +50,21 @@ def set_up(verbose):
         os.makedirs(logfolder)
 
     logger = logging.getLogger('recordium')
-    handler = CustomRotatingFH(logfile, maxBytes=1e6, backupCount=10)
-    logger.addHandler(handler)
-    formatter = logging.Formatter("%(asctime)s  %(name)-22s  %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
     logger.setLevel(logging.DEBUG)
 
+    handler = CustomRotatingFH(logfile, maxBytes=1e6, backupCount=10)
+    formatter = logging.Formatter("%(asctime)s  %(name)-22s  %(levelname)-8s %(message)s")
+    handler.setFormatter(formatter)
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
     if verbose:
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        handler.setLevel(logging.DEBUG)
+    else:
+        handler.setLevel(logging.INFO)
+    logger.addHandler(handler)
 
     # hook the exception handler
     sys.excepthook = exception_handler

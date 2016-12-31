@@ -132,10 +132,13 @@ class MessagesGetter:
         url = build_api_url('getUpdates', **kwargs)
         logger.debug("Getting updates, kwargs=%s", kwargs)
 
-        def _re_get(result):
+        def _re_get(error):
+            """Capture all results; always re-issue self.go, if error raise it."""
             polling_time = 1000 * config.get(config.POLLING_TIME)
-            logger.debug("Re get, result=%s polling_time=%d", result, polling_time)
+            logger.debug("Re get, error=%s polling_time=%d", error, polling_time)
             QtCore.QTimer.singleShot(polling_time, self.go)
+            if error is not None:
+                error.raise_exception()
 
         self._downloader = _Downloader(url)
         self._downloader.deferred.add_callback(self._process)
