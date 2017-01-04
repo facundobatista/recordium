@@ -115,6 +115,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(("When", "Text", "Done"))
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.setSizeAdjustPolicy(2)
 
         self.itemClicked.connect(self.item_clicked)
         self.show()
