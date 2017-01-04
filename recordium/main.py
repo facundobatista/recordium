@@ -115,6 +115,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(("When", "Text", "Done"))
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
+        self.setSizeAdjustPolicy(2)
 
         self.itemClicked.connect(self.item_clicked)
         self.show()
@@ -133,7 +134,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
 
     def item_clicked(self, widget):
         """An item in the table was clicked."""
-        if widget.column() != 2:
+        if widget.column() != self.check_col:
             # not a checkbox
             return
 
