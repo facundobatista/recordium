@@ -228,21 +228,17 @@ class SysTray:
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
         super().__init__(sys.argv)
-        self.version = version
         if not config.get(config.BOT_AUTH_TOKEN):
             self._temp_cw = ConfigWidget(explain=True)
             self._temp_cw.exec_()
         if config.get(config.BOT_AUTH_TOKEN):
-            self._systray()
-
-    def _systray(self):
-        """Start application network and systray menu & icon"""
-        self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
-        self.storage = storage.Storage()
-        self.systray = SysTray(self, self.version)
-        self.messages_getter = network.MessagesGetter(
-            self._new_messages, self.storage.get_last_element_id)
-        self.messages_getter.go()
+            """Start application network and systray menu & icon"""
+            self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
+            self.storage = storage.Storage()
+            self.systray = SysTray(self, version)
+            self.messages_getter = network.MessagesGetter(
+                self._new_messages, self.storage.get_last_element_id)
+            self.messages_getter.go()
 
 
     def _new_messages(self, messages):
