@@ -67,7 +67,7 @@ class ConfigWidget(QtWidgets.QDialog):
         main_layout = QtWidgets.QVBoxLayout()
         if explain:
             main_layout.addWidget(QtWidgets.QLabel("Please configure Recordium to be able to start fetching messages"), 0)
-            main_layout.addWidget(QtWidgets.QLabel("See instructions on README.TXT"), 0)
+            main_layout.addWidget(QtWidgets.QLabel("See instructions on README.rst"), 0)
             hline = QtWidgets.QFrame()
             hline.setFrameShape(QtWidgets.QFrame.HLine)
             hline.setFrameShadow(QtWidgets.QFrame.Sunken)
