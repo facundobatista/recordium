@@ -49,7 +49,7 @@ class NotificationItem:
             logger.warning("Unknown update type: %r", update)
             return
 
-        text = msg['text']
+        text = msg.get('text','no text value')
         sent_at = datetime.fromtimestamp(msg['date'])
         return cls(text=text, sent_at=sent_at, message_id=update_id)
 
