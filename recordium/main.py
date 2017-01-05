@@ -57,12 +57,21 @@ def debug_trace():
     set_trace()
 
 
-class ConfigWidget(QtWidgets.QWidget):
+class ConfigWidget(QtWidgets.QDialog):
     """The config window."""
 
-    def __init__(self):
+    def __init__(self, explain):
         super().__init__()
         self.setWindowTitle("Configuration")
+
+        main_layout = QtWidgets.QVBoxLayout()
+        if explain:
+            main_layout.addWidget(QtWidgets.QLabel("Please configure Recordium to be able to start fetching messages"), 0)
+            main_layout.addWidget(QtWidgets.QLabel("See instructions on README.TXT"), 0)
+            hline = QtWidgets.QFrame()
+            hline.setFrameShape(QtWidgets.QFrame.HLine)
+            hline.setFrameShadow(QtWidgets.QFrame.Sunken)
+            main_layout.addWidget(hline)
 
         grid = QtWidgets.QGridLayout()
         grid.addWidget(QtWidgets.QLabel("Telegram bot auth token:"), 0, 0)
@@ -76,17 +85,32 @@ class ConfigWidget(QtWidgets.QWidget):
         self.entry_polling_time.setValue(prev)
         self.entry_polling_time.setMinimum(1)
         grid.addWidget(self.entry_polling_time, 1, 1)
+        main_layout.addLayout(grid, 0)
 
-        self.setLayout(grid)
-        self.show()
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            QtCore.Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        main_layout.addWidget(buttons, 0)
+
+        self.setLayout(main_layout)
+
+    def accept(self):
+        """On accept button, save config"""
+        self._save_config()
+        super().accept()
 
     def closeEvent(self, event):
         """Intercept closing and save config."""
+        self._save_config()
+        super().closeEvent(event)
+
+    def _save_config(self):
+        """Save config"""
         config.set(config.BOT_AUTH_TOKEN, self.entry_auth_token.text())
         config.set(config.POLLING_TIME, self.entry_polling_time.value())
         config.save()
-        super().closeEvent(event)
-
 
 class MessagesWidget(QtWidgets.QTableWidget):
     """The list of messages."""
@@ -173,7 +197,8 @@ class SysTray:
 
     def _configure(self, _):
         """Show the configuration dialog."""
-        self._temp_cw = ConfigWidget()
+        self._temp_cw = ConfigWidget(explain=False)
+        self._temp_cw.exec_()
 
     def _about(self, _):
         """Show the About dialog."""
@@ -203,12 +228,22 @@ class SysTray:
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
         super().__init__(sys.argv)
+        self.version = version
+        if not config.get(config.BOT_AUTH_TOKEN):
+            self._temp_cw = ConfigWidget(explain=True)
+            self._temp_cw.exec_()
+        if config.get(config.BOT_AUTH_TOKEN):
+            self._systray()
+
+    def _systray(self):
+        """Start application network and systray menu & icon"""
         self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
         self.storage = storage.Storage()
-        self.systray = SysTray(self, version)
+        self.systray = SysTray(self, self.version)
         self.messages_getter = network.MessagesGetter(
             self._new_messages, self.storage.get_last_element_id)
         self.messages_getter.go()
+
 
     def _new_messages(self, messages):
         """Called when new messages are available."""
