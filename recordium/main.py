@@ -204,8 +204,15 @@ class SysTray:
 
     def _show_messages(self, _):
         """Show a window with the messages."""
-        # store it in the instance otherwise it's destroyed
-        self._temp_mw = MessagesWidget(self.app.storage, self)
+        if self.app.storage.get_elements():
+            # store it in the instance otherwise it's destroyed
+            self._temp_mw = MessagesWidget(self.app.storage, self)
+        else:
+            QtWidgets.QMessageBox.information(
+                None,
+                "No messages",
+                "No messages to show"
+            )
 
     @lru_cache(None)
     def _get_icon(self, have_messages):
