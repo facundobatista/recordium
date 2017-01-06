@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -18,13 +18,11 @@ import logging
 import os
 import pickle
 
-from xdg import BaseDirectory
-
-from recordium.utils import SafeSaver
+from recordium.utils import SafeSaver, config_basedir
 
 logger = logging.getLogger(__name__)
 
-FILEPATH = os.path.join(BaseDirectory.xdg_config_home, 'recordium.cfg')
+FILEPATH = os.path.join(config_basedir, 'recordium.cfg')
 
 
 def _options_setter(cls):

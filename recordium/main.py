@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -15,6 +15,7 @@
 # For further info, check  https://github.com/facundobatista/recordium
 
 import logging
+import subprocess
 import sys
 
 from functools import lru_cache
@@ -91,7 +92,8 @@ class ConfigWidget(QtWidgets.QWidget):
 class MessagesWidget(QtWidgets.QTableWidget):
     """The list of messages."""
 
-    # keep this one as an attribute as it's used in several parts
+    # useful columns, to not use just numbers in the code
+    text_col = 1
     check_col = 2
 
     def __init__(self, storage, systray):
@@ -134,17 +136,21 @@ class MessagesWidget(QtWidgets.QTableWidget):
 
     def item_clicked(self, widget):
         """An item in the table was clicked."""
-        if widget.column() != self.check_col:
-            # not a checkbox
-            return
-
-        should_strikeout = widget.checkState() == QtCore.Qt.Checked
-        row = widget.row()
-        for column in range(2):
-            item = self.item(row, column)
-            font = item.font()
-            font.setStrikeOut(should_strikeout)
-            item.setFont(font)
+        column = widget.column()
+        if column == self.check_col:
+            should_strikeout = widget.checkState() == QtCore.Qt.Checked
+            row = widget.row()
+            for column in range(2):
+                item = self.item(row, column)
+                font = item.font()
+                font.setStrikeOut(should_strikeout)
+                item.setFont(font)
+        elif column == self.text_col:
+            row = widget.row()
+            msg = self._messages[row]
+            if msg.extfile_path is not None:
+                logger.debug("Opening external file %r", msg.extfile_path)
+                subprocess.call(['/usr/bin/xdg-open', msg.extfile_path])
 
 
 class SysTray:

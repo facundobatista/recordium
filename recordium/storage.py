@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -18,13 +18,11 @@ import logging
 import os
 import pickle
 
-from xdg import BaseDirectory
-
-from recordium.utils import SafeSaver
+from recordium.utils import SafeSaver, data_basedir
 
 logger = logging.getLogger(__name__)
 
-FILEPATH = os.path.join(BaseDirectory.xdg_data_home, 'recordium.pkl')
+FILEPATH = os.path.join(data_basedir, 'recordium.pkl')
 
 ELEMENTS = 'elements'
 LAST_ELEMENT_ID = 'last_elements_id'
@@ -57,8 +55,11 @@ class Storage:
     def delete_elements(self, elements):
         """Remove elements from the storage."""
         logger.debug("Deleting elements: %s", elements)
+        stored_elements = self.data[ELEMENTS]
         for element in elements:
-            del self.data[ELEMENTS][element.message_id]
+            del stored_elements[element.message_id]
+            if element.extfile_path is not None:
+                os.remove(element.extfile_path)
         self._save()
 
     def add_elements(self, elements):

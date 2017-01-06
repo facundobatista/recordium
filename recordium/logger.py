@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -23,7 +23,7 @@ import traceback
 
 from logging.handlers import RotatingFileHandler
 
-import xdg.BaseDirectory
+from recordium.utils import cache_basedir
 
 
 class CustomRotatingFH(RotatingFileHandler):
@@ -43,7 +43,7 @@ def exception_handler(exc_type, exc_value, tb):
 
 def set_up(verbose):
     """Set up the logging."""
-    logfile = os.path.join(xdg.BaseDirectory.xdg_cache_home, 'recordium', 'recordium.log')
+    logfile = os.path.join(cache_basedir, 'recordium.log')
     print("Saving logs to", repr(logfile))
     logfolder = os.path.dirname(logfile)
     if not os.path.exists(logfolder):

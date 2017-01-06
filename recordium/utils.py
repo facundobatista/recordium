@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -15,6 +15,22 @@
 # For further info, check  https://github.com/facundobatista/recordium
 
 import os
+
+from xdg import BaseDirectory
+
+
+def _ensure_dir_exists(dirpath):
+    """If the directory doesn't exist, create it."""
+    if not os.path.exists(dirpath):
+        os.mkdir(dirpath)
+
+
+# simple attributes to have this calculated at one place only
+config_basedir = BaseDirectory.xdg_config_home
+cache_basedir = os.path.join(BaseDirectory.xdg_cache_home, 'recordium')
+_ensure_dir_exists(cache_basedir)
+data_basedir = os.path.join(BaseDirectory.xdg_data_home, 'recordium')
+_ensure_dir_exists(data_basedir)
 
 
 class SafeSaver(object):

@@ -1,4 +1,4 @@
-# Copyright 2016 Facundo Batista
+# Copyright 2016-2017 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -16,6 +16,8 @@
 
 import json
 import logging
+import os
+import uuid
 
 from datetime import datetime
 from urllib import parse
@@ -25,21 +27,25 @@ import defer
 from PyQt5 import QtCore, QtNetwork
 
 from recordium.config import config
+from recordium.utils import data_basedir
 
 logger = logging.getLogger(__name__)
 
 API_BASE = "https://api.telegram.org/bot{token}/{method}"
+API_FILE = "https://api.telegram.org/file/bot{token}/{file_path}"
 
 
 class NotificationItem:
     """The item shown in the notification."""
 
-    def __init__(self, text, sent_at, message_id):
+    def __init__(self, text, sent_at, message_id, extfile_path):
         self.text = text
         self.sent_at = sent_at
         self.message_id = message_id
+        self.extfile_path = extfile_path
 
     @classmethod
+    @defer.inline_callbacks
     def from_update(cls, update):
         """Create from a telegram message."""
         update_id = int(update['update_id'])
@@ -49,12 +55,22 @@ class NotificationItem:
             logger.warning("Unknown update type: %r", update)
             return
 
-        text = msg['text']
         sent_at = datetime.fromtimestamp(msg['date'])
-        return cls(text=text, sent_at=sent_at, message_id=update_id)
+
+        if 'text' in msg:
+            text = msg['text']
+            extfile_path = None
+        elif 'photo' in msg:
+            # grab the content of the biggest photo only
+            photo = max(msg['photo'], key=lambda photo: photo['width'])
+            text = "<image, click to open>"
+            extfile_path = yield download_file(photo['file_id'])
+        defer.return_value(cls(
+            text=text, sent_at=sent_at, message_id=update_id, extfile_path=extfile_path))
 
     def __str__(self):
-        return "<Message [{}] {} {!r}>".format(self.message_id, self.sent_at, self. text)
+        return "<Message [{}] {} {!r} ({!r})>".format(
+            self.message_id, self.sent_at, self. text, self.extfile_path)
 
 
 class NetworkError(Exception):
@@ -64,7 +80,14 @@ class NetworkError(Exception):
 class _Downloader(object):
     """An asynch downloader that fires a deferred with data when done."""
 
-    def __init__(self, url):
+    def __init__(self, url, file_path=None):
+        if file_path is None:
+            self.file_handler = None
+            self.file_downloaded_size = None
+        else:
+            self.file_handler = open(file_path, "wb")
+            self.file_downloaded_size = 0
+
         self._qt_network_manager = QtNetwork.QNetworkAccessManager()
 
         self.deferred = defer.Deferred()
@@ -74,6 +97,14 @@ class _Downloader(object):
         self.req = self._qt_network_manager.get(request)
         self.req.error.connect(self.error)
         self.req.finished.connect(self.end)
+        if self.file_handler is not None:
+            self.req.downloadProgress.connect(self._save_partial)
+
+    def _save_partial(self, dloaded, total):
+        """Save partially downloaded content."""
+        new_data = self.req.readAll()
+        self.file_downloaded_size += len(new_data)
+        self.file_handler.write(new_data)
 
     def error(self, error_code):
         """Request finished (*maybe*) on error."""
@@ -84,18 +115,55 @@ class _Downloader(object):
 
     def end(self):
         """Send data through the deferred, if wasn't fired before."""
-        data = self.req.read(self.req.bytesAvailable())
-        if data and not self.deferred.called:
-            self.deferred.callback(data)
+        if self.file_handler is None:
+            result = self.req.read(self.req.bytesAvailable())
+        else:
+            result = self.file_downloaded_size
+            self.file_handler.close()
+
+        if result and not self.deferred.called:
+            self.deferred.callback(result)
 
 
-def build_api_url(method, **kwargs):
+def build_baseapi_url(method, **kwargs):
     """Build the proper url to hit the API."""
     token = config.get(config.BOT_AUTH_TOKEN)
     url = API_BASE.format(token=token, method=method)
     if kwargs:
         url += '?' + parse.urlencode(kwargs)
     return url
+
+
+def build_fileapi_url(file_path):
+    """Build the proper url to hit the API."""
+    token = config.get(config.BOT_AUTH_TOKEN)
+    url = API_FILE.format(token=token, file_path=file_path)
+    return url
+
+
+@defer.inline_callbacks
+def download_file(file_id):
+    """Download the file content from Telegram."""
+    url = build_baseapi_url('getFile', file_id=file_id)
+    logger.debug("Getting file path, file_id=%s", file_id)
+    downloader = _Downloader(url)
+    encoded_data = yield downloader.deferred
+
+    logger.debug("getFile response encoded data len=%d", len(encoded_data))
+    data = json.loads(encoded_data.decode('utf8'))
+    if not data.get('ok'):
+        logger.warning("getFile result is not ok: %s", encoded_data)
+        return
+
+    remote_path = data['result']['file_path']
+    url = build_fileapi_url(remote_path)
+    file_path = os.path.join(data_basedir, uuid.uuid4().hex + '-' + os.path.basename(remote_path))
+    logger.debug("Getting file content, storing in %r", file_path)
+    downloader = _Downloader(url, file_path)
+    downloaded_size = yield downloader.deferred
+
+    logger.debug("Downloaded file content, size=%d", downloaded_size)
+    defer.return_value(file_path)
 
 
 class MessagesGetter:
@@ -105,6 +173,7 @@ class MessagesGetter:
         self.new_items_callback = new_items_callback
         self.last_id_callback = last_id_callback
 
+    @defer.inline_callbacks
     def _process(self, encoded_data):
         """Process received info."""
         logger.debug("Process encoded data len=%d", len(encoded_data))
@@ -115,7 +184,7 @@ class MessagesGetter:
             items = []
             for item in results:
                 logger.debug("Processing result: %s", item)
-                ni = NotificationItem.from_update(item)
+                ni = yield NotificationItem.from_update(item)
                 if ni is not None:
                     items.append(ni)
             if items:
@@ -129,7 +198,7 @@ class MessagesGetter:
         kwargs = {}
         if last_id is not None:
             kwargs['offset'] = last_id + 1
-        url = build_api_url('getUpdates', **kwargs)
+        url = build_baseapi_url('getUpdates', **kwargs)
         logger.debug("Getting updates, kwargs=%s", kwargs)
 
         def _re_get(error):
