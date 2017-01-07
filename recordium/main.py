@@ -190,15 +190,8 @@ class SysTray:
 
     def _show_messages(self, _):
         """Show a window with the messages."""
-        if self.app.storage.get_elements():
-            # store it in the instance otherwise it's destroyed
-            self._temp_mw = MessagesWidget(self.app.storage, self)
-        else:
-            QtWidgets.QMessageBox.information(
-                None,
-                "No messages",
-                "No messages to show"
-            )
+        # store it in the instance otherwise it's destroyed
+        self._temp_mw = MessagesWidget(self.app.storage, self)
 
     @lru_cache(None)
     def _get_icon(self, have_messages):
@@ -211,6 +204,7 @@ class SysTray:
         quantity = len(self.app.storage.get_elements())
         self._messages_action.setText(N_MESSAGES_TEXT.format(quantity=quantity))
         self.sti.setIcon(self._get_icon(bool(quantity)))
+        self._messages_action.setEnabled(bool(quantity))
 
 
 class RecordiumApp(QtWidgets.QApplication):
