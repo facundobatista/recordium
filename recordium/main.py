@@ -221,8 +221,11 @@ class SysTray:
 
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
-        super().__init__(sys.argv)
         """Start application network and systray menu & icon"""
+        super().__init__(sys.argv)
+        if not config.get(config.BOT_AUTH_TOKEN):
+            self._temp_cw = ConfigWidget()
+            self._temp_cw.exec_()
         self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
         self.storage = storage.Storage()
         self.systray = SysTray(self, version)
