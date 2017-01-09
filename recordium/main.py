@@ -221,7 +221,6 @@ class SysTray:
 
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
-        """Start application network and systray menu & icon"""
         super().__init__(sys.argv)
         if not config.get(config.BOT_AUTH_TOKEN):
             self._temp_cw = ConfigWidget()
