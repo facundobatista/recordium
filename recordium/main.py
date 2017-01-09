@@ -204,6 +204,7 @@ class SysTray:
         quantity = len(self.app.storage.get_elements())
         self._messages_action.setText(N_MESSAGES_TEXT.format(quantity=quantity))
         self.sti.setIcon(self._get_icon(bool(quantity)))
+        self._messages_action.setEnabled(bool(quantity))
 
 
 class RecordiumApp(QtWidgets.QApplication):
