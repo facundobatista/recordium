@@ -17,15 +17,27 @@
 import logging
 import subprocess
 import sys
+import platform
+import os
+import PyQt5
 
 from functools import lru_cache
 
 from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import __file__ as pyqt_path
 
 from recordium import network, storage
 from recordium.config import config
 
 logger = logging.getLogger(__name__)
+
+def fix_environment():
+    '''add enviroment variable on Windows systems'''
+
+    if platform.system() == "Windows":
+        pyqt = os.path.dirname(pyqt_path)
+        qt_platform_plugins_path = os.path.join(pyqt, "plugins")
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = qt_platform_plugins_path
 
 
 # the text to show in the About window
@@ -204,15 +216,8 @@ class SysTray:
 
     def _show_messages(self, _):
         """Show a window with the messages."""
-        if self.app.storage.get_elements():
-            # store it in the instance otherwise it's destroyed
-            self._temp_mw = MessagesWidget(self.app.storage, self)
-        else:
-            QtWidgets.QMessageBox.information(
-                None,
-                "No messages",
-                "No messages to show"
-            )
+        # store it in the instance otherwise it's destroyed
+        self._temp_mw = MessagesWidget(self.app.storage, self)
 
     @lru_cache(None)
     def _get_icon(self, have_messages):
@@ -253,5 +258,6 @@ class RecordiumApp(QtWidgets.QApplication):
 
 
 def go(version):
+    fix_environment()
     app = RecordiumApp(version)
     sys.exit(app.exec_())

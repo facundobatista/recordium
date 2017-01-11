@@ -1,0 +1,16 @@
+To create an installer on Windows
+Download & install:
+- Python3.5 and pyQt5-py3.5 from [1] or [2]. Pip install on my Windows 7 doesn't work, so I needed to use prepared .exe.-
+- Install virtual env: pip install virtualenv
+- Install NSIS from http://nsis.sourceforge.net/Download
+
+
+- git clone https://github.com/facundobatista/recordium.git
+- Change dir to recordium cloned source
+- Create venv & activate:
+	* virtualenv venv
+	* venv\Scripts\activate.bat
+- Install requirements:  pip install -r requirements.txt
+- Install pyinstaller: pip install pyinstaller
+- Exec. pyinstaller recordium\main.py
+- Go to recordium\windows and right click Install.nsi using "Compile NSIS Script"
