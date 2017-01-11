@@ -17,7 +17,6 @@
 import logging
 import subprocess
 import sys
-
 from functools import lru_cache
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -26,6 +25,17 @@ from recordium import network, storage
 from recordium.config import config
 
 logger = logging.getLogger(__name__)
+
+def add_envirom():
+    '''add enviroment variable on Windows systems'''
+    import platform
+    import os
+    import PyQt5
+
+    if platform.system() == "Windows":
+        pyqt = os.path.dirname(PyQt5.__file__)
+        qt_platform_plugins_path = os.path.join(pyqt, "plugins")
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = qt_platform_plugins_path
 
 
 # the text to show in the About window
@@ -61,12 +71,12 @@ def debug_trace():
 class ConfigWidget(QtWidgets.QDialog):
     """The config window."""
 
-    def __init__(self, explain):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("Configuration")
 
         main_layout = QtWidgets.QVBoxLayout()
-        if explain:
+        if not config.get(config.BOT_AUTH_TOKEN):
             main_layout.addWidget(QtWidgets.QLabel(
                 "Please configure Recordium to be able to start fetching messages\n"
                 "See instructions on README.rst"), 0)
@@ -191,7 +201,7 @@ class SysTray:
 
     def _configure(self, _):
         """Show the configuration dialog."""
-        self._temp_cw = ConfigWidget(explain=False)
+        self._temp_cw = ConfigWidget()
         self._temp_cw.exec_()
 
     def _about(self, _):
@@ -224,22 +234,21 @@ class SysTray:
         quantity = len(self.app.storage.get_elements())
         self._messages_action.setText(N_MESSAGES_TEXT.format(quantity=quantity))
         self.sti.setIcon(self._get_icon(bool(quantity)))
+        self._messages_action.setEnabled(bool(quantity))
 
 
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
         super().__init__(sys.argv)
         if not config.get(config.BOT_AUTH_TOKEN):
-            self._temp_cw = ConfigWidget(explain=True)
+            self._temp_cw = ConfigWidget()
             self._temp_cw.exec_()
-        if config.get(config.BOT_AUTH_TOKEN):
-            """Start application network and systray menu & icon"""
-            self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
-            self.storage = storage.Storage()
-            self.systray = SysTray(self, version)
-            self.messages_getter = network.MessagesGetter(
-                self._new_messages, self.storage.get_last_element_id)
-            self.messages_getter.go()
+        self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
+        self.storage = storage.Storage()
+        self.systray = SysTray(self, version)
+        self.messages_getter = network.MessagesGetter(
+            self._new_messages, self.storage.get_last_element_id)
+        self.messages_getter.go()
 
     def _new_messages(self, messages):
         """Called when new messages are available."""
@@ -248,5 +257,6 @@ class RecordiumApp(QtWidgets.QApplication):
 
 
 def go(version):
+    add_envirom()
     app = RecordiumApp(version)
     sys.exit(app.exec_())
