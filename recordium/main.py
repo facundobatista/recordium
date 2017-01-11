@@ -17,7 +17,6 @@
 import logging
 import subprocess
 import sys
-
 from functools import lru_cache
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -26,6 +25,17 @@ from recordium import network, storage
 from recordium.config import config
 
 logger = logging.getLogger(__name__)
+
+def add_envirom():
+    '''add enviroment variable on Windows systems'''
+    import platform
+    import os
+    import PyQt5
+
+    if platform.system() == "Windows":
+        pyqt = os.path.dirname(PyQt5.__file__)
+        qt_platform_plugins_path = os.path.join(pyqt, "plugins")
+        os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = qt_platform_plugins_path
 
 
 # the text to show in the About window
@@ -240,5 +250,6 @@ class RecordiumApp(QtWidgets.QApplication):
 
 
 def go(version):
+    add_envirom()
     app = RecordiumApp(version)
     sys.exit(app.exec_())

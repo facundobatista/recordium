@@ -1,2 +1,2 @@
 defer
-pyxdg
+appdirs
