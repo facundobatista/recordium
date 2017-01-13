@@ -47,6 +47,7 @@ N_MESSAGES_TEXT = "{quantity} new messages"
 # icons to show if there are messages or not
 ICONPATH_NO_MESSAGE = 'media/icon-192.png'
 ICONPATH_HAVE_MESSAGES = 'media/icon-active-192.png'
+ICONPATH_PROBLEM = 'media/icon-problem-192.png'
 
 
 def debug_trace():
@@ -95,7 +96,7 @@ class ConfigWidget(QtWidgets.QDialog):
 
     def closeEvent(self, event):
         """Intercept closing and save config."""
-        config.set(config.BOT_AUTH_TOKEN, self.entry_auth_token.text())
+        config.set(config.BOT_AUTH_TOKEN, self.entry_auth_token.text().strip())
         config.set(config.POLLING_TIME, self.entry_polling_time.value())
         config.save()
         super().closeEvent(event)
@@ -209,7 +210,12 @@ class SysTray:
     @lru_cache(None)
     def _get_icon(self, have_messages):
         """Return and cache an icon."""
-        path = ICONPATH_HAVE_MESSAGES if have_messages else ICONPATH_NO_MESSAGE
+        if not config.get(config.BOT_AUTH_TOKEN):
+            path = ICONPATH_PROBLEM
+        elif have_messages:
+            path = ICONPATH_HAVE_MESSAGES
+        else:
+            path = ICONPATH_NO_MESSAGE
         return QtGui.QIcon(path)
 
     def set_message_number(self):
