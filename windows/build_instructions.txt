@@ -8,9 +8,12 @@ Download & install:
 - git clone https://github.com/facundobatista/recordium.git
 - Change dir to recordium cloned source
 - Create venv & activate:
-	* virtualenv venv
+	* virtualenv --system-site-packages venv
 	* venv\Scripts\activate.bat
 - Install requirements:  pip install -r requirements.txt
 - Install pyinstaller: pip install pyinstaller
-- Exec. pyinstaller recordium\main.py
+- Exec pyi-makespec -p . -w bin\recordium
+- Exec. pyinstaller recordium.spec
+- Copy recordium\media directory into recordium\dist\recordium dir
+- Copy Python35\Lib\site-packages\PyQt5\plugins\platforms\qwindows.dll into dist\recordium dir
 - Go to recordium\windows and right click Install.nsi using "Compile NSIS Script"
