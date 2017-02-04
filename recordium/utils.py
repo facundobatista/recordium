@@ -27,11 +27,11 @@ def _ensure_dir_exists(dirpath):
 # simple attributes to have this calculated at one place only
 app = appdirs.AppDirs("recordium")
 
-# if exists, move the old config file into a new dir configuration.
+# if exists, move the old config file into a new configuration dir.
 if not os.path.exists(app.user_config_dir):
     config_file_name = "recordium.cfg"
     _ensure_dir_exists(app.user_config_dir)
-    prev_cfg = os.path.join(os.path.split(app.user_config_dir)[0], config_file_name)
+    prev_cfg = os.path.join(os.path.dirname(app.user_config_dir), config_file_name)
     if os.path.exists(prev_cfg):
         os.rename(prev_cfg, os.path.join(app.user_config_dir, config_file_name))
 _ensure_dir_exists(app.user_data_dir)

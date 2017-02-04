@@ -19,7 +19,6 @@ import subprocess
 import sys
 import platform
 import os
-import PyQt5
 
 from functools import lru_cache
 
@@ -32,7 +31,7 @@ from recordium.config import config
 logger = logging.getLogger(__name__)
 
 def fix_environment():
-    '''add enviroment variable on Windows systems'''
+    """add enviroment variable on Windows systems"""
 
     if platform.system() == "Windows":
         pyqt = os.path.dirname(pyqt_path)
@@ -63,7 +62,7 @@ ICONPATH_PROBLEM = 'media/icon-problem-192.png'
 
 
 def debug_trace():
-    '''Set a tracepoint in the Python debugger that works with Qt'''
+    """Set a tracepoint in the Python debugger that works with Qt"""
     from PyQt5.QtCore import pyqtRemoveInputHook
 
     from pdb import set_trace
