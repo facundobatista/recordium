@@ -16,8 +16,7 @@
 
 import os
 
-from xdg import BaseDirectory
-
+import appdirs
 
 def _ensure_dir_exists(dirpath):
     """If the directory doesn't exist, create it."""
@@ -26,11 +25,22 @@ def _ensure_dir_exists(dirpath):
 
 
 # simple attributes to have this calculated at one place only
-config_basedir = BaseDirectory.xdg_config_home
-cache_basedir = os.path.join(BaseDirectory.xdg_cache_home, 'recordium')
-_ensure_dir_exists(cache_basedir)
-data_basedir = os.path.join(BaseDirectory.xdg_data_home, 'recordium')
-_ensure_dir_exists(data_basedir)
+app = appdirs.AppDirs("recordium")
+
+# if exists, move the old config file into a new configuration dir.
+if not os.path.exists(app.user_config_dir):
+    config_file_name = "recordium.cfg"
+    _ensure_dir_exists(app.user_config_dir)
+    prev_cfg = os.path.join(os.path.dirname(app.user_config_dir), config_file_name)
+    if os.path.exists(prev_cfg):
+        os.rename(prev_cfg, os.path.join(app.user_config_dir, config_file_name))
+_ensure_dir_exists(app.user_data_dir)
+_ensure_dir_exists(app.user_cache_dir)
+
+data_basedir = app.user_data_dir
+cache_basedir = app.user_cache_dir
+config_basedir = app.user_config_dir
+
 
 
 class SafeSaver(object):
