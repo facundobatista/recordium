@@ -28,6 +28,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
 if os.path.basename(parent_dir) == 'recordium':
     # inside the project!!
     sys.path.insert(0, parent_dir)
+    os.chdir(parent_dir)    # to allow use of relative paths
 
 from recordium import main, logger
 
