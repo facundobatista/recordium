@@ -38,36 +38,52 @@ API_FILE = "https://api.telegram.org/file/bot{token}/{file_path}"
 class NotificationItem:
     """The item shown in the notification."""
 
-    def __init__(self, message_id, text=None, sent_at=None, extfile_path=None, useful=True):
+    MEDIA_TYPE_IMAGE = 'image'
+    MEDIA_TYPE_AUDIO = 'audio'
+
+    def __init__(self, message_id, text=None, sent_at=None,
+                 extfile_path=None, media_type=None, useful=True):
         self.message_id = message_id
         self.useful = useful
         self.text = text
         self.sent_at = sent_at
         self.extfile_path = extfile_path
+        self.media_type = media_type
 
     @classmethod
     @defer.inline_callbacks
     def _from_update(cls, update):
         """Create from a telegram message."""
-        update_id = int(update['update_id'])
         try:
             msg = update['message']
         except KeyError:
             logger.warning("Unknown update type: %r", update)
             return
 
-        sent_at = datetime.fromtimestamp(msg['date'])
-
         if 'text' in msg:
             text = msg['text']
-            extfile_path = None
+            info = dict(text=text)
+
         elif 'photo' in msg:
             # grab the content of the biggest photo only
             photo = max(msg['photo'], key=lambda photo: photo['width'])
-            text = "<image, click to open>"
             extfile_path = yield download_file(photo['file_id'])
-        defer.return_value(cls(
-            text=text, sent_at=sent_at, message_id=update_id, extfile_path=extfile_path))
+            media_type = cls.MEDIA_TYPE_IMAGE
+            info = dict(extfile_path=extfile_path, media_type=media_type)
+
+        elif 'voice' in msg:
+            # get the audio file
+            extfile_path = yield download_file(msg['voice']['file_id'])
+            media_type = cls.MEDIA_TYPE_AUDIO
+            info = dict(extfile_path=extfile_path, media_type=media_type)
+
+        else:
+            logger.warning("Message type not supported: %s", msg)
+            return
+
+        update_id = int(update['update_id'])
+        sent_at = datetime.fromtimestamp(msg['date'])
+        defer.return_value(cls(sent_at=sent_at, message_id=update_id, **info))
 
     @classmethod
     @defer.inline_callbacks
@@ -86,8 +102,8 @@ class NotificationItem:
         defer.return_value(item)
 
     def __str__(self):
-        return "<Message [{}] {} {!r} ({!r})>".format(
-            self.message_id, self.sent_at, self. text, self.extfile_path)
+        return "<Message [{}] {} {!r} ({}, {!r})>".format(
+            self.message_id, self.sent_at, self. text, self.media_type, self.extfile_path)
 
 
 class NetworkError(Exception):

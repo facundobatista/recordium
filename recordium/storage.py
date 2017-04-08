@@ -34,14 +34,24 @@ class Storage:
     def __init__(self):
         if os.path.exists(FILEPATH):
             logger.debug("Loading from %r", FILEPATH)
-            with open(FILEPATH, 'rb') as fh:
-                self.data = pickle.load(fh)
+            self.data = self._load()
         else:
+            logger.debug("File not found, starting empty")
             self.data = {
                 ELEMENTS: {},
                 LAST_ELEMENT_ID: None,
             }
-            logger.debug("File not found, starting empty")
+
+    def _load(self):
+        """Load and migrate."""
+        with open(FILEPATH, 'rb') as fh:
+            data = pickle.load(fh)
+
+        # add the media type, if not there
+        for elem in data[ELEMENTS].values():
+            elem.media_type = getattr(elem, 'media_type', None)
+
+        return data
 
     def get_last_element_id(self):
         """Return the last stored element, None if nothing stored."""

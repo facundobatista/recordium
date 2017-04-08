@@ -56,9 +56,14 @@ Version {version}<br/>
 N_MESSAGES_TEXT = "{quantity} new messages"
 
 # icons to show if there are messages or not
-ICONPATH_NO_MESSAGE = 'media/icon-192.png'
-ICONPATH_HAVE_MESSAGES = 'media/icon-active-192.png'
-ICONPATH_PROBLEM = 'media/icon-problem-192.png'
+ICONPATH_NO_MESSAGE = 'media/icon-recordium-192.png'
+ICONPATH_HAVE_MESSAGES = 'media/icon-recordium-active-192.png'
+ICONPATH_PROBLEM = 'media/icon-recordium-problem-192.png'
+
+# icons for the messages GUI
+ICONPATH_IMAGE = 'media/icon-picture.png'
+ICONPATH_AUDIO = 'media/icon-sound.png'
+ICONPATH_MEDIA_UNKNOWN = 'media/icon-mediaunknown.png'
 
 
 def debug_trace():
@@ -117,35 +122,96 @@ class ConfigWidget(QtWidgets.QDialog):
 class MessagesWidget(QtWidgets.QTableWidget):
     """The list of messages."""
 
-    # useful columns, to not use just numbers in the code
+    # useful columns (to not use just numbers in the code), and titles
     text_col = 1
-    check_col = 2
+    media_col = 2
+    check_col = 3
+    titles = ("When", "Text", "Media", "Done")
+
+    # what to present when the user hovers the cells
+    tooltips_present = [
+        "When the message was sent",
+        "The text of the message (double click to copy to the clipboard)",
+        "The media (image, audio, etc) included in the message",
+        "Select to remove the message from the system",
+    ]
+    tooltips_missing = [
+        None,
+        "No text included in the message",
+        "No media included in the message",
+        None,
+    ]
 
     def __init__(self, storage, systray):
         self._messages = storage.get_elements()
         self._storage = storage
         self._systray = systray
-        super().__init__(len(self._messages), 3)
+        super().__init__(len(self._messages), len(self.titles))
+
+        item_builders = [
+            self._build_item_datetime,
+            self._build_item_text,
+            self._build_item_media,
+            self._build_item_checkbox,
+        ]
 
         for row, msg in enumerate(self._messages):
-            item = QtWidgets.QTableWidgetItem(str(msg.sent_at))
-            self.setItem(row, 0, item)
+            logger.debug("Set message for row %d: %s", row, msg)
+            for col in range(len(self.titles)):
+                # get the builder according to the column and build the item
+                builder = item_builders[col]
+                item = builder(msg)
 
-            item = QtWidgets.QTableWidgetItem(msg.text)
-            self.setItem(row, 1, item)
+                # if no specific item, build and empty one
+                if item is None:
+                    item = QtWidgets.QTableWidgetItem()
+                    item.setToolTip(self.tooltips_missing[col])
+                else:
+                    item.setToolTip(self.tooltips_present[col])
 
-            item = QtWidgets.QTableWidgetItem()
-            item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            item.setCheckState(QtCore.Qt.Unchecked)
-            self.setItem(row, self.check_col, item)
+                # set it to not editable, add a tooltip, and put it in the table
+                item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
+                self.setItem(row, col, item)
 
-        self.setHorizontalHeaderLabels(("When", "Text", "Done"))
+        self.setHorizontalHeaderLabels(self.titles)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
         self.setSizeAdjustPolicy(2)
 
-        self.itemClicked.connect(self.item_clicked)
+        self.itemClicked.connect(self._item_clicked)
+        self.itemDoubleClicked.connect(self._item_doubleclicked)
         self.show()
+
+    def _build_item_datetime(self, msg):
+        """Build the item for the datetime column."""
+        return QtWidgets.QTableWidgetItem(str(msg.sent_at))
+
+    def _build_item_text(self, msg):
+        """Build the item for the text column."""
+        if msg.text is not None:
+            return QtWidgets.QTableWidgetItem(msg.text)
+
+    def _build_item_media(self, msg):
+        """Build the item for the media column."""
+        if msg.extfile_path is not None:
+            # build the icon according to the media type, if known
+            if msg.media_type == msg.MEDIA_TYPE_IMAGE:
+                icon = QtGui.QIcon(ICONPATH_IMAGE)
+            elif msg.media_type == msg.MEDIA_TYPE_AUDIO:
+                icon = QtGui.QIcon(ICONPATH_AUDIO)
+            else:
+                icon = QtGui.QIcon(ICONPATH_MEDIA_UNKNOWN)
+
+            item = QtWidgets.QTableWidgetItem()
+            item.setIcon(icon)
+            return item
+
+    def _build_item_checkbox(self, msg):
+        """Build the item for the checkbox column."""
+        item = QtWidgets.QTableWidgetItem()
+        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        item.setCheckState(QtCore.Qt.Unchecked)
+        return item
 
     def closeEvent(self, event):
         """Intercept closing and delete marked messages."""
@@ -159,23 +225,36 @@ class MessagesWidget(QtWidgets.QTableWidget):
             self._systray.set_message_number()
         super().closeEvent(event)
 
-    def item_clicked(self, widget):
+    def _item_clicked(self, widget):
         """An item in the table was clicked."""
         column = widget.column()
+        row = widget.row()
+
         if column == self.check_col:
+            # click in the checkbox column strike out (or unstrike) the whole row
             should_strikeout = widget.checkState() == QtCore.Qt.Checked
-            row = widget.row()
-            for column in range(2):
+            for column in range(len(self.titles) - 1):  # -1 to not strike out checkbox
                 item = self.item(row, column)
                 font = item.font()
                 font.setStrikeOut(should_strikeout)
                 item.setFont(font)
-        elif column == self.text_col:
-            row = widget.row()
+
+    def _item_doubleclicked(self, widget):
+        """An item in the table was clicked."""
+        column = widget.column()
+        row = widget.row()
+
+        if column == self.media_col:
+            # click in the media column, execute externally
             msg = self._messages[row]
             if msg.extfile_path is not None:
                 logger.debug("Opening external file %r", msg.extfile_path)
                 subprocess.call(['/usr/bin/xdg-open', msg.extfile_path])
+
+        elif column == self.text_col:
+            # click in the text column, copy to clipboard
+            clipboard = QtWidgets.QApplication.clipboard()
+            clipboard.setText(widget.text())
 
 
 class SysTray:

@@ -7,7 +7,7 @@ stuff to your future *in-your-desktop-or-laptop* self.
 The idea is that you execute Recordium in your desktop computer or in your
 laptop, and it will remain there as a small icon.
 
-.. image:: https://raw.githubusercontent.com/facundobatista/recordium/master/media/icon-192.png
+.. image:: https://raw.githubusercontent.com/facundobatista/recordium/master/media/icon-recordium-192.png
 
 Later, anytime, you are on the road or away, and remind something you should
 do in the future. At that moment you send a Telegram text or audio to your
