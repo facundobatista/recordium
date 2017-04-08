@@ -69,7 +69,8 @@ class NotificationItem:
             photo = max(msg['photo'], key=lambda photo: photo['width'])
             extfile_path = yield download_file(photo['file_id'])
             media_type = cls.MEDIA_TYPE_IMAGE
-            info = dict(extfile_path=extfile_path, media_type=media_type)
+            text = msg['caption'] if 'caption' in msg else None
+            info = dict(extfile_path=extfile_path, media_type=media_type, text=text)
 
         elif 'voice' in msg:
             # get the audio file
