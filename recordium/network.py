@@ -38,15 +38,16 @@ API_FILE = "https://api.telegram.org/file/bot{token}/{file_path}"
 class NotificationItem:
     """The item shown in the notification."""
 
-    def __init__(self, text, sent_at, message_id, extfile_path):
+    def __init__(self, message_id, text=None, sent_at=None, extfile_path=None, useful=True):
+        self.message_id = message_id
+        self.useful = useful
         self.text = text
         self.sent_at = sent_at
-        self.message_id = message_id
         self.extfile_path = extfile_path
 
     @classmethod
     @defer.inline_callbacks
-    def from_update(cls, update):
+    def _from_update(cls, update):
         """Create from a telegram message."""
         update_id = int(update['update_id'])
         try:
@@ -67,6 +68,22 @@ class NotificationItem:
             extfile_path = yield download_file(photo['file_id'])
         defer.return_value(cls(
             text=text, sent_at=sent_at, message_id=update_id, extfile_path=extfile_path))
+
+    @classmethod
+    @defer.inline_callbacks
+    def from_update(cls, update):
+        """Securely parse from update, or return a not useful item."""
+        try:
+            item = yield cls._from_update(update)
+        except Exception as exc:
+            logger.exception("Problem parsing message from update: %s", exc)
+            item = None
+
+        if item is None:
+            # bad parsing or crash in _from_update
+            update_id = int(update['update_id'])
+            item = cls(message_id=update_id, useful=False)
+        defer.return_value(item)
 
     def __str__(self):
         return "<Message [{}] {} {!r} ({!r})>".format(
@@ -185,8 +202,7 @@ class MessagesGetter:
             for item in results:
                 logger.debug("Processing result: %s", item)
                 ni = yield NotificationItem.from_update(item)
-                if ni is not None:
-                    items.append(ni)
+                items.append(ni)
             if items:
                 self.new_items_callback(items)
         else:

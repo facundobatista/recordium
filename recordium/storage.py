@@ -65,9 +65,9 @@ class Storage:
     def add_elements(self, elements):
         """Add the new elements (or replace them) to the storage."""
         logger.debug("Adding elements: %s", elements)
-        new_elements_dict = {elem.message_id: elem for elem in elements}
+        new_elements_dict = {elem.message_id: elem for elem in elements if elem.useful}
         self.data[ELEMENTS].update(new_elements_dict)
-        self.data[LAST_ELEMENT_ID] = max(new_elements_dict)
+        self.data[LAST_ELEMENT_ID] = max(elem.message_id for elem in elements)
         self._save()
 
     def _save(self):
