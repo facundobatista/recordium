@@ -30,6 +30,7 @@ from recordium.config import config
 
 logger = logging.getLogger(__name__)
 
+
 def fix_environment():
     """Add enviroment variable on Windows systems."""
     if platform.system() == "Windows":
@@ -100,6 +101,7 @@ class ConfigWidget(QtWidgets.QDialog):
         grid.addWidget(self.entry_polling_time, 1, 1)
 
         main_layout.addLayout(grid, 0)
+        main_layout.addStretch(1)
 
         self.setLayout(main_layout)
         self.show()
