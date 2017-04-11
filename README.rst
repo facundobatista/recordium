@@ -56,6 +56,14 @@ Step by step instructions
   - Put the bot auth token there
 
 
+After creating new bot you can set an image to it. For this, type the command
+`/setuserpic` to BotFather.  It will ask you to select which of your bots you
+want to edit and after the selection it will ask you to send a picture.
+
+If you want to use Recordium logo for this, download it from
+`here <http://bit.ly/recordium-logo>`_ and send it to BotFather.
+
+
 F.A.Q.
 ------
 
