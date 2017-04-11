@@ -162,14 +162,14 @@ class MessagesWidget(QtWidgets.QTableWidget):
                 builder = item_builders[col]
                 item = builder(msg)
 
-                # if no specific item, build and empty one
+                # if no specific item, build and empty one, and add a tooltip in any case
                 if item is None:
                     item = QtWidgets.QTableWidgetItem()
                     item.setToolTip(self.tooltips_missing[col])
                 else:
                     item.setToolTip(self.tooltips_present[col])
 
-                # set it to not editable, add a tooltip, and put it in the table
+                # set it to not editable and put it in the table
                 item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
                 self.setItem(row, col, item)
 
