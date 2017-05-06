@@ -40,6 +40,7 @@ class _Config(object):
     _config_options = {
         'BOT_AUTH_TOKEN': '',
         'POLLING_TIME': 30,
+        'USER_ALLOWED': None,
     }
 
     def __init__(self):

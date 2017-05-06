@@ -60,6 +60,21 @@ class NotificationItem:
             logger.warning("Unknown update type: %r", update)
             return
 
+        # only allow messages from a specific user (set in the first message, can be reset
+        # through config)
+        from_id = msg['from']['id']
+        allowed_user = config.get(config.USER_ALLOWED)
+        if allowed_user is None:
+            # user not configured yet, let's set it now
+            logger.info("Setting allowed user id to %r", from_id)
+            config.set(config.USER_ALLOWED, from_id)
+            config.save()
+        else:
+            # check user is allowed
+            if allowed_user != from_id:
+                logger.warning("Ignoring message from user not allowed: %r", from_id)
+                return
+
         if 'text' in msg:
             text = msg['text']
             info = dict(text=text)
@@ -97,7 +112,7 @@ class NotificationItem:
             item = None
 
         if item is None:
-            # bad parsing or crash in _from_update
+            # bad parsing, crash in _from_update, user not allowed, etc
             update_id = int(update['update_id'])
             item = cls(message_id=update_id, useful=False)
         defer.return_value(item)

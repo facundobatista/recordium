@@ -1,1 +1,1 @@
-fades --system-site-packages -r requirements.txt bin/recordium $@
+fades --system-site-packages -r requirements.txt bin/recordium -v

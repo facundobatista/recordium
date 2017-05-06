@@ -78,6 +78,8 @@ def debug_trace():
 class ConfigWidget(QtWidgets.QDialog):
     """The config window."""
 
+    _msg_user_not_set = "Not configured yet, will be set with the first message received"
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Configuration")
@@ -92,24 +94,48 @@ class ConfigWidget(QtWidgets.QDialog):
             hline.setFrameShadow(QtWidgets.QFrame.Sunken)
             main_layout.addWidget(hline)
 
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(QtWidgets.QLabel("Telegram bot auth token:"), 0, 0)
+        self.grid = grid = QtWidgets.QGridLayout()
+        grid.addWidget(QtWidgets.QLabel("Telegram bot auth token:"), 0, 0)  # row 0, col 0
         prev = config.get(config.BOT_AUTH_TOKEN)
         self.entry_auth_token = QtWidgets.QLineEdit(prev)
-        grid.addWidget(self.entry_auth_token, 0, 1)
+        grid.addWidget(self.entry_auth_token, 0, 1, 1, 2)  # row 0, cols 1 and 2
 
-        grid.addWidget(QtWidgets.QLabel("Polling time (in seconds, min=1)"), 1, 0)
+        grid.addWidget(QtWidgets.QLabel("Polling time (in seconds, min=1):"), 1, 0)  # row 1, col 0
         prev = config.get(config.POLLING_TIME)
         self.entry_polling_time = QtWidgets.QSpinBox()
         self.entry_polling_time.setValue(prev)
         self.entry_polling_time.setMinimum(1)
-        grid.addWidget(self.entry_polling_time, 1, 1)
+        grid.addWidget(self.entry_polling_time, 1, 1, 1, 2)  # row 1, cols 1 and 2
+
+        grid.addWidget(QtWidgets.QLabel("Allowed user id to send messages:"), 2, 0)  # row 2, col 0
+        self._user_reset_button = QtWidgets.QPushButton("Reset")
+        self._user_reset_button.clicked.connect(self._user_reset)
+        grid.addWidget(self._user_reset_button, 2, 2)  # row 2, col 2
+        user_config = config.get(config.USER_ALLOWED)
+        if user_config is None:
+            user_config = self._msg_user_not_set
+            self._user_reset_button.setEnabled(False)
+        else:
+            user_config = str(user_config)
+        self._user_reset_label = QtWidgets.QLabel(user_config)
+        grid.addWidget(self._user_reset_label, 2, 1)  # row 2, col 1
 
         main_layout.addLayout(grid, 0)
         main_layout.addStretch(1)
 
         self.setLayout(main_layout)
         self.show()
+
+    def _user_reset(self, _):
+        """Reset the allowed user."""
+        # config will be saved on dialog closing
+        config.set(config.USER_ALLOWED, None)
+        self._user_reset_button.setEnabled(False)
+
+        # hide previous label and set the new one
+        self._user_reset_label.hide()
+        self._user_reset_label = QtWidgets.QLabel(self._msg_user_not_set)
+        self.grid.addWidget(self._user_reset_label, 2, 1)  # row 2, col 1
 
     def closeEvent(self, event):
         """Intercept closing and save config."""
