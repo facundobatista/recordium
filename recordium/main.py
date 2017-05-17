@@ -262,9 +262,12 @@ class MessagesWidget(QtWidgets.QTableWidget):
             for column in range(len(self.titles) - 1):  # -1 to not strike out checkbox
                 item = self.item(row, column)
                 if disable:
-                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled)
                 else:
                     item.setFlags(item.flags() | QtCore.Qt.ItemIsEnabled)
+                font = item.font()
+                font.setStrikeOut(disable)
+                item.setFont(font)
 
     def _item_doubleclicked(self, widget):
         """An item in the table was clicked."""
