@@ -196,7 +196,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
                     item.setToolTip(self.tooltips_present[col])
 
                 # set it to not editable and put it in the table
-                item.setFlags(item.flags() ^ QtCore.Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, col, item)
 
         self.setHorizontalHeaderLabels(self.titles)
@@ -273,12 +273,16 @@ class MessagesWidget(QtWidgets.QTableWidget):
         row = widget.row()
 
         if column == self.check_col:
-            # click in the checkbox column strike out (or unstrike) the whole row
-            should_strikeout = widget.checkState() == QtCore.Qt.Checked
+            # click in the checkbox column disable or enable the whole row
+            disable = widget.checkState() == QtCore.Qt.Checked
             for column in range(len(self.titles) - 1):  # -1 to not strike out checkbox
                 item = self.item(row, column)
+                if disable:
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled)
+                else:
+                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEnabled)
                 font = item.font()
-                font.setStrikeOut(should_strikeout)
+                font.setStrikeOut(disable)
                 item.setFont(font)
 
     def _item_doubleclicked(self, widget):
