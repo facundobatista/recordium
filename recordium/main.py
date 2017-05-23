@@ -209,8 +209,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
         header.setSectionsMovable(True)
         
         # load configuration & put columns in saved order
-        col_order = [int(i) for i in config.get(config.COL_ORDER)]
-        for fr, to in enumerate(col_order):
+        for fr, to in enumerate(config.get(config.COL_ORDER)):
             header.moveSection(self.visualColumn(fr), to)
 
         self.itemClicked.connect(self._item_clicked)
@@ -261,8 +260,8 @@ class MessagesWidget(QtWidgets.QTableWidget):
 
         # saves column order configuration
         col_order = []
-        for col in range(0, self.columnCount()):
-            col_order.append(str(self.visualColumn(col)))
+        for col in range(self.columnCount()):
+            col_order.append(self.visualColumn(col))
         config.set(config.COL_ORDER, col_order)
         config.save()
         super().closeEvent(event)
