@@ -63,11 +63,11 @@ class NotificationItem:
         # only allow messages from a specific user (set in the first message, can be reset
         # through config)
         from_id = msg['from']['id']
-        allowed_user = config.get(config.USER_ALLOWED)
+        allowed_user = config.USER_ALLOWED
         if allowed_user is None:
             # user not configured yet, let's set it now
             logger.info("Setting allowed user id to %r", from_id)
-            config.set(config.USER_ALLOWED, from_id)
+            config.USER_ALLOWED = from_id
             config.save()
         else:
             # check user is allowed
@@ -176,7 +176,7 @@ class _Downloader(object):
 
 def build_baseapi_url(method, **kwargs):
     """Build the proper url to hit the API."""
-    token = config.get(config.BOT_AUTH_TOKEN)
+    token = config.BOT_AUTH_TOKEN
     url = API_BASE.format(token=token, method=method)
     if kwargs:
         url += '?' + parse.urlencode(kwargs)
@@ -185,7 +185,7 @@ def build_baseapi_url(method, **kwargs):
 
 def build_fileapi_url(file_path):
     """Build the proper url to hit the API."""
-    token = config.get(config.BOT_AUTH_TOKEN)
+    token = config.BOT_AUTH_TOKEN
     url = API_FILE.format(token=token, file_path=file_path)
     return url
 
@@ -251,7 +251,7 @@ class MessagesGetter:
 
         def _re_get(error):
             """Capture all results; always re-issue self.go, if error raise it."""
-            polling_time = 1000 * config.get(config.POLLING_TIME)
+            polling_time = 1000 * config.POLLING_TIME
             logger.debug("Re get, error=%s polling_time=%d", error, polling_time)
             QtCore.QTimer.singleShot(polling_time, self.go)
             if error is not None:

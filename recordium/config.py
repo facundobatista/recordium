@@ -35,6 +35,7 @@ class _Config(object):
         'USER_ALLOWED': None,
         'COL_ORDER': []
     }
+    _need_save = 0
 
     def __init__(self):
         if not os.path.exists(FILEPATH):
@@ -46,19 +47,17 @@ class _Config(object):
         with open(FILEPATH, 'rb') as fh:
             self.data = pickle.load(fh)
         logger.debug("Loaded: %s", self.data)
-        self._need_save = 0
 
     def __getattr__(self, key):
         return self.data.get(key, self._config_options[key])
 
     def __setattr__(self, key, value):
-        if key.upper() in self._config_options.keys():
-            key = key.upper()
-            if self.data[key] != value:
+        if key in self._config_options.keys():
+            if self.__getattr__(key) != value:
                 self.data[key] = value
                 self._need_save += 1
         else:
-            self.__dict__[key] = value
+            super(_Config, self).__setattr__(key, value)
 
     def save(self):
         """Save the config to disk."""
