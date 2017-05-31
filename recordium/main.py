@@ -262,8 +262,9 @@ class MessagesWidget(QtWidgets.QTableWidget):
         col_order = []
         for col in range(self.columnCount()):
             col_order.append(self.visualColumn(col))
-        config.set(config.COL_ORDER, col_order)
-        config.save()
+        if config.get(config.COL_ORDER) != col_order:
+            config.set(config.COL_ORDER, col_order)
+            config.save()
         super().closeEvent(event)
 
     def _item_clicked(self, widget):
