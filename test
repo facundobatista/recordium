@@ -1,0 +1,1 @@
+fades -r requirements.txt -d nose -x nosetests -v -s tests

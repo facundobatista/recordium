@@ -52,8 +52,8 @@ class _Config(object):
         return self.data.get(key, self._config_options[key])
 
     def __setattr__(self, key, value):
-        if key in self._config_options.keys():
-            if self.__getattr__(key) != value:
+        if key in self._config_options:
+            if self.data.get(key, self._config_options[key]) != value:
                 self.data[key] = value
                 self._need_save += 1
         else:
