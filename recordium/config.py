@@ -41,6 +41,7 @@ class _Config(object):
         'BOT_AUTH_TOKEN': '',
         'POLLING_TIME': 30,
         'USER_ALLOWED': None,
+        'COL_ORDER': []
     }
 
     def __init__(self):

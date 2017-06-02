@@ -204,6 +204,14 @@ class MessagesWidget(QtWidgets.QTableWidget):
         self.resizeRowsToContents()
         self.setSizeAdjustPolicy(2)
 
+        # enable user to move columns
+        header = self.horizontalHeader()
+        header.setSectionsMovable(True)
+        
+        # load configuration & put columns in saved order
+        for fr, to in enumerate(config.get(config.COL_ORDER)):
+            header.moveSection(self.visualColumn(fr), to)
+
         self.itemClicked.connect(self._item_clicked)
         self.itemDoubleClicked.connect(self._item_doubleclicked)
         self.show()
@@ -249,6 +257,14 @@ class MessagesWidget(QtWidgets.QTableWidget):
         if messages_to_remove:
             self._storage.delete_elements(messages_to_remove)
             self._systray.set_message_number()
+
+        # saves column order configuration
+        col_order = []
+        for col in range(self.columnCount()):
+            col_order.append(self.visualColumn(col))
+        if config.get(config.COL_ORDER) != col_order:
+            config.set(config.COL_ORDER, col_order)
+            config.save()
         super().closeEvent(event)
 
     def _item_clicked(self, widget):
