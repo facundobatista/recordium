@@ -53,11 +53,14 @@ class _Config(object):
 
     def __setattr__(self, key, value):
         if key in self._config_options:
-            if self.data.get(key, self._config_options[key]) != value:
+            if self.data.get(key) != value:
                 self.data[key] = value
                 self._need_save += 1
         else:
-            super(_Config, self).__setattr__(key, value)
+            if key.upper() != key:
+                super(_Config, self).__setattr__(key, value)
+            else:
+                raise AttributeError
 
     def save(self):
         """Save the config to disk."""
