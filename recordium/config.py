@@ -35,9 +35,10 @@ class _Config(object):
         'USER_ALLOWED': None,
         'COL_ORDER': []
     }
-    _need_save = 0
 
     def __init__(self):
+        self._needs_save = 0
+
         if not os.path.exists(FILEPATH):
             # default to an empty dict
             logger.debug("File not found, starting empty")
@@ -53,22 +54,22 @@ class _Config(object):
 
     def __setattr__(self, key, value):
         if key in self._config_options:
-            if not key in self._data or self._data[key] != value:
+            if key not in self._data or self._data[key] != value:
                 self._data[key] = value
-                self._need_save += 1
+                self._needs_save += 1
         else:
             if key.startswith('_'):
-                super(_Config, self).__setattr__(key, value)
+                super().__setattr__(key, value)
             else:
                 raise AttributeError
 
     def save(self):
         """Save the config to disk."""
-        if self._need_save:
+        if self._needs_save:
             logger.debug("Saving: %s", self._data)
             with SafeSaver(FILEPATH) as fh:
                 pickle.dump(self._data, fh)
-                self._need_save = 0
+                self._needs_save = 0
 
 
 config = _Config()
