@@ -25,14 +25,6 @@ logger = logging.getLogger(__name__)
 FILEPATH = os.path.join(config_basedir, 'recordium.cfg')
 
 
-def _options_setter(cls):
-    """Set the options as an attribute."""
-    for name in cls._config_options:
-        setattr(cls, name, name)
-    return cls
-
-
-@_options_setter
 class _Config(object):
     """The configuration."""
 
@@ -45,27 +37,39 @@ class _Config(object):
     }
 
     def __init__(self):
+        self._needs_save = 0
+
         if not os.path.exists(FILEPATH):
             # default to an empty dict
             logger.debug("File not found, starting empty")
-            self.data = {}
+            self._data = {}
             return
 
         with open(FILEPATH, 'rb') as fh:
-            self.data = pickle.load(fh)
-        logger.debug("Loaded: %s", self.data)
+            self._data = pickle.load(fh)
+        logger.debug("Loaded: %s", self._data)
 
-    def get(self, key):
-        return self.data.get(key, self._config_options[key])
+    def __getattr__(self, key):
+        return self._data.get(key, self._config_options[key])
 
-    def set(self, key, value):
-        self.data[key] = value
+    def __setattr__(self, key, value):
+        if key in self._config_options:
+            if key not in self._data or self._data[key] != value:
+                self._data[key] = value
+                self._needs_save += 1
+        else:
+            if key.startswith('_'):
+                super().__setattr__(key, value)
+            else:
+                raise AttributeError
 
     def save(self):
         """Save the config to disk."""
-        logger.debug("Saving: %s", self.data)
-        with SafeSaver(FILEPATH) as fh:
-            pickle.dump(self.data, fh)
+        if self._needs_save:
+            logger.debug("Saving: %s", self._data)
+            with SafeSaver(FILEPATH) as fh:
+                pickle.dump(self._data, fh)
+                self._needs_save = 0
 
 
 config = _Config()

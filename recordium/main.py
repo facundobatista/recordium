@@ -85,7 +85,7 @@ class ConfigWidget(QtWidgets.QDialog):
         self.setWindowTitle("Configuration")
 
         main_layout = QtWidgets.QVBoxLayout()
-        if not config.get(config.BOT_AUTH_TOKEN):
+        if not config.BOT_AUTH_TOKEN:
             main_layout.addWidget(QtWidgets.QLabel(
                 "Please configure Recordium to be able to start fetching messages\n"
                 "See instructions on README.rst"), 0)
@@ -96,12 +96,12 @@ class ConfigWidget(QtWidgets.QDialog):
 
         self.grid = grid = QtWidgets.QGridLayout()
         grid.addWidget(QtWidgets.QLabel("Telegram bot auth token:"), 0, 0)  # row 0, col 0
-        prev = config.get(config.BOT_AUTH_TOKEN)
+        prev = config.BOT_AUTH_TOKEN
         self.entry_auth_token = QtWidgets.QLineEdit(prev)
         grid.addWidget(self.entry_auth_token, 0, 1, 1, 2)  # row 0, cols 1 and 2
 
         grid.addWidget(QtWidgets.QLabel("Polling time (in seconds, min=1):"), 1, 0)  # row 1, col 0
-        prev = config.get(config.POLLING_TIME)
+        prev = config.POLLING_TIME
         self.entry_polling_time = QtWidgets.QSpinBox()
         self.entry_polling_time.setValue(prev)
         self.entry_polling_time.setMinimum(1)
@@ -111,7 +111,7 @@ class ConfigWidget(QtWidgets.QDialog):
         self._user_reset_button = QtWidgets.QPushButton("Reset")
         self._user_reset_button.clicked.connect(self._user_reset)
         grid.addWidget(self._user_reset_button, 2, 2)  # row 2, col 2
-        user_config = config.get(config.USER_ALLOWED)
+        user_config = config.USER_ALLOWED
         if user_config is None:
             user_config = self._msg_user_not_set
             self._user_reset_button.setEnabled(False)
@@ -129,7 +129,7 @@ class ConfigWidget(QtWidgets.QDialog):
     def _user_reset(self, _):
         """Reset the allowed user."""
         # config will be saved on dialog closing
-        config.set(config.USER_ALLOWED, None)
+        config.USER_ALLOWED = None
         self._user_reset_button.setEnabled(False)
 
         # hide previous label and set the new one
@@ -139,8 +139,8 @@ class ConfigWidget(QtWidgets.QDialog):
 
     def closeEvent(self, event):
         """Intercept closing and save config."""
-        config.set(config.BOT_AUTH_TOKEN, self.entry_auth_token.text().strip())
-        config.set(config.POLLING_TIME, self.entry_polling_time.value())
+        config.BOT_AUTH_TOKEN = self.entry_auth_token.text().strip()
+        config.POLLING_TIME = self.entry_polling_time.value()
         config.save()
         super().closeEvent(event)
 
@@ -209,7 +209,7 @@ class MessagesWidget(QtWidgets.QTableWidget):
         header.setSectionsMovable(True)
         
         # load configuration & put columns in saved order
-        for fr, to in enumerate(config.get(config.COL_ORDER)):
+        for fr, to in enumerate(config.COL_ORDER):
             header.moveSection(self.visualColumn(fr), to)
 
         self.itemClicked.connect(self._item_clicked)
@@ -262,9 +262,8 @@ class MessagesWidget(QtWidgets.QTableWidget):
         col_order = []
         for col in range(self.columnCount()):
             col_order.append(self.visualColumn(col))
-        if config.get(config.COL_ORDER) != col_order:
-            config.set(config.COL_ORDER, col_order)
-            config.save()
+        config.COL_ORDER = col_order
+        config.save()
         super().closeEvent(event)
 
     def _item_clicked(self, widget):
@@ -347,7 +346,7 @@ class SysTray:
     @lru_cache(None)
     def _get_icon(self, have_messages):
         """Return and cache an icon."""
-        if not config.get(config.BOT_AUTH_TOKEN):
+        if not config.BOT_AUTH_TOKEN:
             path = ICONPATH_PROBLEM
         elif have_messages:
             path = ICONPATH_HAVE_MESSAGES
@@ -366,7 +365,7 @@ class SysTray:
 class RecordiumApp(QtWidgets.QApplication):
     def __init__(self, version):
         super().__init__(sys.argv)
-        if not config.get(config.BOT_AUTH_TOKEN):
+        if not config.BOT_AUTH_TOKEN:
             self._temp_cw = ConfigWidget()
             self._temp_cw.exec_()
         self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
