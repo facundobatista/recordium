@@ -149,11 +149,24 @@ class _Downloader(object):
         if self.file_handler is not None:
             self.req.downloadProgress.connect(self._save_partial)
 
+        # program the eventual unlock
+        QtCore.QTimer.singleShot(10000, self.unlock)  # ten seconds should be more than enough (?)
+
     def _save_partial(self, dloaded, total):
         """Save partially downloaded content."""
         new_data = self.req.readAll()
         self.file_downloaded_size += len(new_data)
         self.file_handler.write(new_data)
+
+    def unlock(self):
+        """Unlock the downloader, no matter what."""
+        if self.deferred.called:
+            # exited normally or with error... but not locked!
+            return
+
+        error_message = "Downloader locked! Unlocking..."
+        logger.warning(error_message)
+        self.deferred.errback(ValueError(error_message))
 
     def error(self, error_code):
         """Request finished (*maybe*) on error."""
