@@ -324,6 +324,7 @@ class SysTray:
         action.triggered.connect(lambda _: self.app.quit())
         sti.setContextMenu(menu)
 
+        self.sti.activated.connect(self._show_messages)
         sti.show()
 
     def _configure(self, _):
