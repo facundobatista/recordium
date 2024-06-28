@@ -1,2 +1,2 @@
-defer
 appdirs
+twisted
