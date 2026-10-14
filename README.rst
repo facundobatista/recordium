@@ -70,7 +70,7 @@ F.A.Q.
 - **Wait, couldn't you almost solve this using other propietary and/or more
   complex tools?** Probably yes, but I didn't want more complex stuff (and
   no way using Google for this). Also, and it's the most important reason: I
-  wanted a toy project for using PyQt 5 under Python 3.
+  wanted a toy project for using PyQt 6 under Python 3.
 
 - **Is there a way to debug what it does?** When running ``bin/recordium``
   see that it tells you where logs are kept. Also, you can do

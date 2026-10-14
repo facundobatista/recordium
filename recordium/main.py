@@ -1,4 +1,4 @@
-# Copyright 2016-2017 Facundo Batista
+# Copyright 2016-2026 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -21,9 +21,11 @@ import subprocess
 import sys
 
 from functools import lru_cache
+from pdb import set_trace
 
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5 import __file__ as pyqt_path
+from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6 import __file__ as pyqt_path
+from PyQt6.QtCore import pyqtRemoveInputHook
 
 from recordium import network, storage
 from recordium.config import config
@@ -68,9 +70,6 @@ ICONPATH_MEDIA_UNKNOWN = 'media/icon-mediaunknown.png'
 
 def debug_trace():
     """Set a tracepoint in the Python debugger that works with Qt."""
-    from PyQt5.QtCore import pyqtRemoveInputHook
-
-    from pdb import set_trace
     pyqtRemoveInputHook()
     set_trace()
 
@@ -90,8 +89,8 @@ class ConfigWidget(QtWidgets.QDialog):
                 "Please configure Recordium to be able to start fetching messages\n"
                 "See instructions on README.rst"), 0)
             hline = QtWidgets.QFrame()
-            hline.setFrameShape(QtWidgets.QFrame.HLine)
-            hline.setFrameShadow(QtWidgets.QFrame.Sunken)
+            hline.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+            hline.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
             main_layout.addWidget(hline)
 
         self.grid = grid = QtWidgets.QGridLayout()
@@ -196,18 +195,20 @@ class MessagesWidget(QtWidgets.QTableWidget):
                     item.setToolTip(self.tooltips_present[col])
 
                 # set it to not editable and put it in the table
-                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                item.setFlags(
+                    item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                 self.setItem(row, col, item)
 
         self.setHorizontalHeaderLabels(self.titles)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-        self.setSizeAdjustPolicy(2)
+        self.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents)
 
         # enable user to move columns
         header = self.horizontalHeader()
         header.setSectionsMovable(True)
-        
+
         # load configuration & put columns in saved order
         for fr, to in enumerate(config.COL_ORDER):
             header.moveSection(self.visualColumn(fr), to)
@@ -243,15 +244,18 @@ class MessagesWidget(QtWidgets.QTableWidget):
     def _build_item_checkbox(self, msg):
         """Build the item for the checkbox column."""
         item = QtWidgets.QTableWidgetItem()
-        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-        item.setCheckState(QtCore.Qt.Unchecked)
+        item.setFlags(
+            QtCore.Qt.ItemFlag.ItemIsUserCheckable |
+            QtCore.Qt.ItemFlag.ItemIsEnabled)
+        item.setCheckState(QtCore.Qt.CheckState.Unchecked)
         return item
 
     def closeEvent(self, event):
         """Intercept closing and delete marked messages."""
         messages_to_remove = []
         for row in range(self.rowCount()):
-            if self.item(row, self.check_col).checkState() == QtCore.Qt.Checked:
+            check_item = self.item(row, self.check_col)
+            if check_item.checkState() == QtCore.Qt.CheckState.Checked:
                 # note, we can access the message like this because the table can not be reordered
                 messages_to_remove.append(self._messages[row])
         if messages_to_remove:
@@ -273,13 +277,15 @@ class MessagesWidget(QtWidgets.QTableWidget):
 
         if column == self.check_col:
             # click in the checkbox column disable or enable the whole row
-            disable = widget.checkState() == QtCore.Qt.Checked
+            disable = widget.checkState() == QtCore.Qt.CheckState.Checked
             for column in range(len(self.titles) - 1):  # -1 to not strike out checkbox
                 item = self.item(row, column)
                 if disable:
-                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(
+                        item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEnabled)
                 else:
-                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEnabled)
+                    item.setFlags(
+                        item.flags() | QtCore.Qt.ItemFlag.ItemIsEnabled)
                 font = item.font()
                 font.setStrikeOut(disable)
                 item.setFont(font)
@@ -330,7 +336,7 @@ class SysTray:
     def _configure(self, _):
         """Show the configuration dialog."""
         self._temp_cw = ConfigWidget()
-        self._temp_cw.exec_()
+        self._temp_cw.exec()
 
     def _about(self, _):
         """Show the About dialog."""
@@ -368,7 +374,7 @@ class RecordiumApp(QtWidgets.QApplication):
         super().__init__(sys.argv)
         if not config.BOT_AUTH_TOKEN:
             self._temp_cw = ConfigWidget()
-            self._temp_cw.exec_()
+            self._temp_cw.exec()
         self.setQuitOnLastWindowClosed(False)  # so app is not closed when closing other windows
         self.storage = storage.Storage()
         self.systray = SysTray(self, version)
@@ -385,4 +391,4 @@ class RecordiumApp(QtWidgets.QApplication):
 def go(version):
     fix_environment()
     app = RecordiumApp(version)
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

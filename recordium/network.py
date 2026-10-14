@@ -1,4 +1,4 @@
-# Copyright 2016-2022 Facundo Batista
+# Copyright 2016-2026 Facundo Batista
 #
 # This program is free software: you can redistribute it and/or modify it
 # under the terms of the GNU General Public License version 3, as published
@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime
 from urllib import parse
 
-from PyQt5 import QtCore, QtNetwork
+from PyQt6 import QtCore, QtNetwork
 from twisted.internet import defer
 
 from recordium.config import config
@@ -142,7 +142,7 @@ class _Downloader(object):
         request = QtNetwork.QNetworkRequest(QtCore.QUrl(url))
 
         self.req = self._qt_network_manager.get(request)
-        self.req.error.connect(self.error)
+        self.req.errorOccurred.connect(self.error)
         self.req.finished.connect(self.end)
         if self.file_handler is not None:
             self.req.downloadProgress.connect(self._save_partial)
