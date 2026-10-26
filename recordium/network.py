@@ -124,6 +124,20 @@ class NetworkError(Exception):
     """Problems in the network."""
 
 
+# the network manager is shared by all downloads: creating one per request
+# leaks file descriptors (eventfds and sockets) until the garbage collector
+# runs, and Qt documents that a single instance serves the whole application
+_qt_network_manager = None
+
+
+def _get_qt_network_manager():
+    """Return the app-wide network access manager, creating it if needed."""
+    global _qt_network_manager
+    if _qt_network_manager is None:
+        _qt_network_manager = QtNetwork.QNetworkAccessManager()
+    return _qt_network_manager
+
+
 class _Downloader(object):
     """An asynch downloader that fires a deferred with data when done."""
 
@@ -135,7 +149,7 @@ class _Downloader(object):
             self.file_handler = open(file_path, "wb")
             self.file_downloaded_size = 0
 
-        self._qt_network_manager = QtNetwork.QNetworkAccessManager()
+        self._qt_network_manager = _get_qt_network_manager()
 
         self.deferred = defer.Deferred()
         self.deferred._store_it_because_qt_needs_or_wont_work = self
@@ -156,6 +170,11 @@ class _Downloader(object):
         self.file_downloaded_size += len(new_data)
         self.file_handler.write(new_data)
 
+    def _close_file(self):
+        """Close the file handler, if present and not already closed."""
+        if self.file_handler is not None and not self.file_handler.closed:
+            self.file_handler.close()
+
     def unlock(self):
         """Unlock the downloader, no matter what."""
         if self.deferred.called:
@@ -164,7 +183,11 @@ class _Downloader(object):
 
         error_message = "Downloader locked! Unlocking..."
         logger.warning(error_message)
+        # fire the deferred before aborting, so the signals that the abort
+        # emits synchronously find it already called; the abort is what
+        # releases the socket of a request that will never complete
         self.deferred.errback(ValueError(error_message))
+        self.req.abort()
 
     def error(self, error_code):
         """Request finished (*maybe*) on error."""
@@ -179,8 +202,10 @@ class _Downloader(object):
             result = self.req.read(self.req.bytesAvailable())
         else:
             result = self.file_downloaded_size
-            self.file_handler.close()
+            self._close_file()
 
+        # not deleting the reply makes the finished replies pile up
+        self.req.deleteLater()
         if result and not self.deferred.called:
             self.deferred.callback(result)
 
